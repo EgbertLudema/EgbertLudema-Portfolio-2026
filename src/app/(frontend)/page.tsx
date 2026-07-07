@@ -5,195 +5,170 @@ import './styles.css'
 
 const projects = [
   {
-    className: 'placeholder-memory',
-    description: 'Web App - Next.js - Tailwind - PostgreSQL',
+    description:
+      'A private archive product shaped around recall, relationships, and a clear editing experience.',
+    meta: 'Product / Next.js / Payload',
     title: 'MemoryVault',
   },
   {
-    className: 'placeholder-simplicate',
-    description: 'WordPress - PHP - ACF - JS',
+    description:
+      'A CMS workflow rebuilt for a content team that needed predictable publishing and fewer admin detours.',
+    meta: 'CMS / WordPress / ACF',
     title: 'SimpliCate',
   },
   {
-    className: 'placeholder-dice',
-    description: 'Shopify - Liquid - JS - UI/UX',
+    description:
+      'A storefront pass focused on collection rhythm, product hierarchy, and mobile purchase confidence.',
+    meta: 'Commerce / Shopify / UX',
     title: 'DICE Label',
   },
 ]
 
-const techStack = [
-  { icon: 'N', label: 'Next.js' },
-  { icon: 'R', label: 'React' },
-  { icon: 'TS', label: 'TypeScript' },
-  { icon: '~', label: 'Tailwind CSS' },
-  { icon: 'JS', label: 'Node.js' },
-  { icon: 'DB', label: 'PostgreSQL' },
-  { icon: 'D', label: 'Docker' },
+const services = [
+  'Interface design',
+  'CMS architecture',
+  'Front-end systems',
+  'Motion polish',
+  'Performance cleanup',
+  'Launch support',
 ]
 
-function ArrowIcon() {
+function Arrow() {
   return (
-    <svg aria-hidden="true" className="arrow-icon" viewBox="0 0 16 16">
-      <path d="M5 3h8v8" />
-      <path d="M13 3 4 12" />
+    <svg aria-hidden="true" className="dot-arrow" viewBox="0 0 18 18">
+      <path d="M5 4h9v9" />
+      <path d="M14 4 4 14" />
     </svg>
   )
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="section-label">
-      <span />
-      {children}
-    </p>
-  )
+function BrandDot() {
+  return <span aria-hidden="true" className="brand-dot" />
 }
 
 export default function HomePage() {
   return (
-    <div className="site-shell">
+    <div className="dot-site">
       <HomepageAnimations />
 
-      <header className="site-header">
-        <a aria-label="Egbert Ludema home" className="brand" href="#">
-          EL<span>.</span>
+      <header className="site-nav">
+        <a className="brand-link" href="#top" aria-label="Egbert Ludema home">
+          <BrandDot />
+          <span>Egbert Ludema</span>
         </a>
 
-        <nav aria-label="Primary navigation" className="main-nav">
+        <nav aria-label="Primary navigation" className="nav-links">
           <a href="#work">Work</a>
-          <a href="#about">About</a>
           <a href="#services">Services</a>
-          <a href="#tech">Tech</a>
           <a href="#contact">Contact</a>
         </nav>
 
-        <a className="button button-muted header-action" href="#contact">
-          Let&apos;s work together
-          <ArrowIcon />
+        <a className="nav-cta" href="mailto:hello@example.com">
+          Start a project
+          <Arrow />
         </a>
       </header>
 
-      <div className="site-main">
-        <section className="hero-section" id="services">
-          <div className="hero-dot-shadow" aria-hidden="true" />
-          <div className="intro-pill">Hi, I&apos;m Egbert</div>
-          <h1>
-            I build digital experiences that are <span>fast, functional and beautifully</span>{' '}
-            crafted.
-          </h1>
-          <p>
-            Full-stack developer & designer focused on building websites, webapps and digital
-            products.
-          </p>
-          <div className="hero-actions">
-            <a className="button button-primary" href="#work">
-              View my work
-              <ArrowIcon />
-            </a>
-            <a className="about-link" href="#about">
-              About me
-              <span>+</span>
-            </a>
+      <main>
+        <section className="hero-lens" id="top">
+          <div className="hero-copy">
+            <p className="section-tag">Full-stack developer and designer</p>
+            <h1 className="hero-title">
+              <span className="text-line">Modern web systems</span>
+              <span className="text-line">with one clear</span>
+              <span className="text-line">point of focus.</span>
+            </h1>
+            <p>
+              Portfolio sites, CMS platforms, and product interfaces for teams that want sharp
+              design, dependable code, and motion that feels intentional.
+            </p>
+
+            <div className="hero-actions">
+              <a className="primary-button" href="#work">
+                See selected work
+                <Arrow />
+              </a>
+              <a className="secondary-button" href="#services">
+                What I do
+              </a>
+            </div>
+          </div>
+
+          <div className="lens-stage" aria-hidden="true">
+            <div className="lens-sweep" />
+            <div className="lens-ring lens-ring-one" />
+            <div className="lens-ring lens-ring-two" />
+            <div className="lens-core">
+              <span />
+            </div>
+            <div className="orbit-dot orbit-dot-a" />
+            <div className="orbit-dot orbit-dot-b" />
+            <div className="orbit-dot orbit-dot-c" />
+            <div className="lens-note lens-note-top">Design</div>
+            <div className="lens-note lens-note-bottom">Code</div>
           </div>
         </section>
 
+        <section className="statement-section reveal-block">
+          <p className="statement-copy">
+            <span className="text-line">The dot is the rule:</span>
+            <span className="text-line">find the center, remove the noise,</span>
+            <span className="text-line">and build outward from the job.</span>
+          </p>
+        </section>
+
         <section className="work-section" id="work">
-          <div className="section-heading">
-            <div>
-              <SectionLabel>Featured work</SectionLabel>
-              <h2>A selection of recent projects.</h2>
-            </div>
-            <a className="button button-muted" href="#">
-              View all projects
-              <ArrowIcon />
-            </a>
+          <div className="section-heading reveal-block">
+            <p className="section-tag">Selected work</p>
+            <h2>
+              <span className="text-line">Clean systems with</span>
+              <span className="text-line">enough character.</span>
+            </h2>
           </div>
 
-          <div className="project-grid">
-            {projects.map((project) => (
-              <article className="project-card" key={project.title}>
-                <div className={`project-image ${project.className}`}>
-                  <div className="browser-bar" />
-                  <div className="mock-content">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                </div>
-                <div className="project-info">
-                  <div>
-                    <h3>{project.title}</h3>
-                    <p>{project.description}</p>
-                  </div>
-                  <a aria-label={`${project.title} project`} className="icon-button" href="#">
-                    <ArrowIcon />
-                  </a>
-                </div>
+          <div className="work-grid">
+            {projects.map((project, index) => (
+              <article className="project-tile reveal-block" key={project.title}>
+                <div className="project-orb">{String(index + 1).padStart(2, '0')}</div>
+                <div className="tile-arc" />
+                <p>{project.meta}</p>
+                <h3>{project.title}</h3>
+                <span>{project.description}</span>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="about-section" id="about">
-          <div className="about-copy">
-            <SectionLabel>About me</SectionLabel>
-            <h2>I&apos;m a developer who loves clean code and simple design.</h2>
-            <p>
-              I help businesses and startups turn ideas into digital products that are not only
-              functional, but a pleasure to use. When I&apos;m not coding, I&apos;m probably
-              learning something new, building side projects or drinking way too much coffee.
-            </p>
-            <a className="button button-muted" href="#">
-              More about me
-              <ArrowIcon />
-            </a>
+        <section className="services-section" id="services">
+          <div className="section-heading reveal-block">
+            <p className="section-tag">Services</p>
+            <h2>
+              <span className="text-line">From first concept</span>
+              <span className="text-line">to production surface.</span>
+            </h2>
           </div>
-        </section>
 
-        <section className="tech-section" id="tech">
-          <SectionLabel>Tech stack</SectionLabel>
-          <div className="tech-list">
-            {techStack.map((tech) => (
-              <div className="tech-pill" key={tech.label}>
-                <span>{tech.icon}</span>
-                {tech.label}
-              </div>
+          <div className="service-cloud reveal-block">
+            {services.map((service) => (
+              <span key={service}>{service}</span>
             ))}
           </div>
         </section>
 
-        <section className="contact-section" id="contact">
+        <section className="contact-panel reveal-block" id="contact">
           <div>
-            <h2>Have a project in mind?</h2>
-            <p>Let&apos;s build something great together.</p>
+            <p className="section-tag">Contact</p>
+            <h2>
+              <span className="text-line">Bring the rough version.</span>
+              <span className="text-line">I will make it crisp.</span>
+            </h2>
           </div>
-          <a className="button button-primary" href="mailto:hello@example.com">
-            Let&apos;s talk
-            <ArrowIcon />
+          <a className="primary-button" href="mailto:hello@example.com">
+            hello@example.com
+            <Arrow />
           </a>
         </section>
-      </div>
-
-      <footer className="site-footer">
-        <a aria-label="Egbert Ludema home" className="brand" href="#">
-          EL<span>.</span>
-        </a>
-        <p>&copy; 2026 Egbert Ludema. All rights reserved.</p>
-        <div className="footer-links">
-          <a href="#">
-            LinkedIn
-            <ArrowIcon />
-          </a>
-          <a href="#">
-            GitHub
-            <ArrowIcon />
-          </a>
-          <a href="mailto:hello@example.com">
-            Email
-            <ArrowIcon />
-          </a>
-        </div>
-      </footer>
+      </main>
     </div>
   )
 }
