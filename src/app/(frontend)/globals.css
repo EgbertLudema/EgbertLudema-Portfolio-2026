@@ -1,0 +1,50 @@
+:root {
+  --color-bg: #fbfbfa;
+  --color-ink: #111111;
+  --color-ink-soft: #2f3437;
+  --color-muted: #8a8a86;
+  --color-line: rgba(17, 17, 17, 0.1);
+  --color-accent: #b7a9e0;
+  --color-accent-strong: #8f7cc7;
+
+  --font-sans: 'Athelas', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-title: 'Vanguard', 'Athelas', Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-ink);
+}
