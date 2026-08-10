@@ -45,15 +45,74 @@ import {
   type MemoryCardState,
 } from './vaultHeroLogic'
 
-const VAULT_TARGET_SIZE = 1
-// The model sits centred on its own bounding-box middle — the card-exit
-// alignment is tuned on the cards' side instead, via MEMORY_VERTICAL_BASELINE
-// in vaultHeroLogic.ts. This offset is a *second*, independent lever: it
-// nudges only the model (not the cards, not outerRef) up/down within its
-// slot. Negative = down. The model and the memory cards are siblings under
-// outerRef, so this is the only way to move the vault body alone without
-// dragging the card orbit with it.
-const VAULT_MODEL_VERTICAL_OFFSET = -0.65
+type ModelTuning = {
+  /** Model is uniformly scaled so its largest bounding-box dimension equals this. */
+  targetSize: number
+  /** Extra nudge applied after centering, on top of the bounding-box center. Negative = down. */
+  verticalOffset: number
+  /** Static yaw baked into the model itself, to fix which way it faces. */
+  rotationY: number
+  /** Gentle continuous idle wobble (sway/bob), always on regardless of focus. */
+  ambientSway: boolean
+}
+
+// Applies to every 3D model EXCEPT the vault (detected below via its
+// VaultDoor mesh). Tweak these to change how any other model looks by
+// default — e.g. the GoogleAds logo currently uses this untouched.
+const DEFAULT_MODEL_TUNING: ModelTuning = {
+  targetSize: 1,
+  verticalOffset: 0,
+  // The GoogleAds glb is exported facing sideways — this turns it to face
+  // the camera. Flip the sign if a future model ends up facing the wrong way.
+  rotationY: Math.PI / 2,
+  ambientSway: false,
+}
+
+// Vault-only overrides, layered on top of the defaults above. These values
+// were tuned by eye specifically for the vault — leave DEFAULT_MODEL_TUNING
+// alone when adjusting the vault, and vice versa.
+const VAULT_MODEL_TUNING: ModelTuning = {
+  ...DEFAULT_MODEL_TUNING,
+  targetSize: 0.8,
+  // The model sits centred on its own bounding-box middle — the card-exit
+  // alignment is tuned on the cards' side instead, via MEMORY_VERTICAL_BASELINE
+  // in vaultHeroLogic.ts. This offset is a *second*, independent lever: it
+  // nudges only the model (not the cards, not outerRef) up/down within its
+  // slot. Negative = down. The model and the memory cards are siblings under
+  // outerRef, so this is the only way to move the vault body alone without
+  // dragging the card orbit with it.
+  verticalOffset: -0.65,
+  rotationY: 0,
+  ambientSway: true,
+}
+
+// Box3.setFromObject(scene) measures in world space, which is contaminated
+// by outerRef's large fixed base rotation (~-126° yaw) once `scene` is
+// mounted under it — fine for the vault (its offsets were tuned by eye
+// against that same measurement), but it throws off any other model's true
+// center, especially once that model gets its own rotation applied on top.
+// This measures purely relative to `root` itself, ignoring every ancestor.
+export function getLocalBoundingBox(root: THREE.Object3D): THREE.Box3 {
+  root.updateWorldMatrix(true, true)
+  const rootWorldInverse = new THREE.Matrix4().copy(root.matrixWorld).invert()
+  const box = new THREE.Box3()
+  const meshBox = new THREE.Box3()
+  const relativeMatrix = new THREE.Matrix4()
+
+  root.traverse((child) => {
+    const mesh = child as THREE.Mesh
+    if (!mesh.isMesh || !mesh.geometry) return
+    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox()
+    if (!mesh.geometry.boundingBox) return
+
+    meshBox.copy(mesh.geometry.boundingBox)
+    relativeMatrix.multiplyMatrices(rootWorldInverse, mesh.matrixWorld)
+    meshBox.applyMatrix4(relativeMatrix)
+    box.union(meshBox)
+  })
+
+  return box
+}
 
 type VaultRig = {
   door: THREE.Object3D | null
@@ -102,21 +161,6 @@ export default function VaultSceneModel({
   const memoryTextures = useMemo(() => heroMemoryCards.map(createMemoryTexture), [])
 
   useEffect(() => {
-    const box = new THREE.Box3().setFromObject(scene)
-    const center = box.getCenter(new THREE.Vector3())
-    const size = box.getSize(new THREE.Vector3())
-    const maxDimension = Math.max(size.x, size.y, size.z) || 1
-    const modelScale = VAULT_TARGET_SIZE / maxDimension
-
-    if (modelWrapRef.current) {
-      modelWrapRef.current.scale.setScalar(modelScale)
-      modelWrapRef.current.position.set(
-        -center.x * modelScale,
-        -center.y * modelScale + VAULT_MODEL_VERTICAL_OFFSET,
-        -center.z * modelScale,
-      )
-    }
-
     let door: THREE.Object3D | null = null
     let handleMesh: THREE.Object3D | null = null
     let numbersMesh: THREE.Object3D | null = null
@@ -126,6 +170,34 @@ export default function VaultSceneModel({
       if (child.name === 'VaultHandle') handleMesh = child
       if (child.name === 'VaultNumbers') numbersMesh = child
     })
+
+    const isVault = Boolean(door)
+    const tuning = isVault ? VAULT_MODEL_TUNING : DEFAULT_MODEL_TUNING
+    // The vault's measurement stays exactly as before (its offsets were
+    // tuned against it); other models use the ancestor-independent version
+    // so their centering is correct regardless of outerRef's base rotation.
+    const box = isVault ? new THREE.Box3().setFromObject(scene) : getLocalBoundingBox(scene)
+    const center = box.getCenter(new THREE.Vector3())
+    const size = box.getSize(new THREE.Vector3())
+    const maxDimension = Math.max(size.x, size.y, size.z) || 1
+    const modelScale = tuning.targetSize / maxDimension
+
+    if (modelWrapRef.current) {
+      modelWrapRef.current.scale.setScalar(modelScale)
+      modelWrapRef.current.rotation.set(0, tuning.rotationY, 0)
+      // Rotation happens before translation in the local transform, so the
+      // centering offset must be rotated the same way to still land the
+      // model's bounding-box center at this group's origin.
+      const scaledCenter = center
+        .clone()
+        .multiplyScalar(modelScale)
+        .applyEuler(new THREE.Euler(0, tuning.rotationY, 0))
+      modelWrapRef.current.position.set(
+        -scaledCenter.x,
+        -scaledCenter.y + tuning.verticalOffset,
+        -scaledCenter.z,
+      )
+    }
 
     // Idempotency guard: this effect can run twice on the same cached scene
     // (see createDoorItemSpinTarget's comment) — by the second run the door
@@ -219,16 +291,25 @@ export default function VaultSceneModel({
   useFrame((state) => {
     const elapsed = state.clock.elapsedTime
 
+    // The idle sway is a per-model-type flourish (vault: on) that runs all
+    // the time, independent of focus. Mouse-follow tilt is a separate lever
+    // that only kicks in once a card is the active/open one — for any model.
+    const tuning = rigRef.current.door ? VAULT_MODEL_TUNING : DEFAULT_MODEL_TUNING
     if (outerRef.current) {
       const tilt = currentTiltRef.current
       const target = pointerTiltRef.current
       tilt.x += (target.x - tilt.x) * 0.08
       tilt.y += (target.y - tilt.y) * 0.08
 
-      outerRef.current.rotation.y =
-        vaultBaseRotationY + Math.sin(elapsed * 0.35) * 0.05 + tilt.y * 0.16
-      outerRef.current.rotation.x = 0.03 + Math.sin(elapsed * 0.5) * 0.018 + tilt.x * 0.1
-      outerRef.current.position.y = -0.08 + Math.sin(elapsed * 0.8) * 0.035
+      const sway = tuning.ambientSway ? Math.sin(elapsed * 0.35) * 0.05 : 0
+      const bob = tuning.ambientSway ? Math.sin(elapsed * 0.5) * 0.018 : 0
+      const bobY = tuning.ambientSway ? Math.sin(elapsed * 0.8) * 0.035 : 0
+      const tiltY = focused ? tilt.y * 0.16 : 0
+      const tiltX = focused ? tilt.x * 0.1 : 0
+
+      outerRef.current.rotation.y = vaultBaseRotationY + sway + tiltY
+      outerRef.current.rotation.x = 0.03 + bob + tiltX
+      outerRef.current.position.y = -0.08 + bobY
     }
 
     const rig = rigRef.current

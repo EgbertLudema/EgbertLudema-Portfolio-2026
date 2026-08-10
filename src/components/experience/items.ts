@@ -6,7 +6,7 @@ export type ExperienceItem = {
    *  edits and ready to key a future project page/modal route off of. */
   id: string
   slug: string
-  type: 'image' | 'model'
+  type: 'image' | 'model' | 'figma'
   title: string
   category: string
   description: string

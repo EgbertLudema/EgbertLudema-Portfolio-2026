@@ -126,6 +126,9 @@ export default function Scene({
       />
       <hemisphereLight intensity={1.1} color="#ffffff" groundColor="#7c3aed" />
       <directionalLight position={[3.8, 4.4, 4.8]} intensity={2.2} />
+      {/* Fill light on the left — the single key light above leaves that
+          side of the models in shadow, this softens it without competing. */}
+      <directionalLight position={[-4.2, 2.6, 3.4]} intensity={1} />
       <FrameCounter countRef={frameCountRef} />
       <Row items={items} activeIndex={activeIndex} onSelect={onSelect} />
     </Canvas>

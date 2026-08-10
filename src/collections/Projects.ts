@@ -46,6 +46,7 @@ export const Projects: CollectionConfig = {
       options: [
         { label: 'Image', value: 'image' },
         { label: '3D Model', value: 'model' },
+        { label: 'Figma Stack', value: 'figma' },
       ],
     },
     {
@@ -62,7 +63,7 @@ export const Projects: CollectionConfig = {
       type: 'upload',
       relationTo: 'models',
       admin: {
-        condition: (data) => data?.type === 'model',
+        condition: (data) => data?.type === 'model' || data?.type === 'figma',
         description: 'The .glb/.gltf file rendered in 3D for this project.',
       },
     },

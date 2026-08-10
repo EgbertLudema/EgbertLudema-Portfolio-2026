@@ -211,7 +211,7 @@ export interface Project {
    * Short description shown under the title.
    */
   description: string;
-  type: 'image' | 'model';
+  type: 'image' | 'model' | 'figma';
   /**
    * Shown as the card artwork for this project.
    */

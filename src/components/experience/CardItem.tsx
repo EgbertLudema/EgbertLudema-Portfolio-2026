@@ -5,9 +5,10 @@ import gsap from 'gsap'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
+import FigmaStackModel from './FigmaStackModel'
 import type { ExperienceItem } from './items'
 import { useGradientTexture } from './useGradientTexture'
-import VaultSceneModel from './VaultSceneModel'
+import VaultSceneModel from './ModelSceneItem'
 
 const CARD_WIDTH = 0.65
 const CARD_HEIGHT = 0.85
@@ -134,6 +135,8 @@ export default function CardItem({
     >
       {item.type === 'model' && item.modelPath ? (
         <VaultSceneModel modelUrl={item.modelPath} focused={focused} scale={VAULT_SCALE} />
+      ) : item.type === 'figma' && item.modelPath ? (
+        <FigmaStackModel modelUrl={item.modelPath} focused={focused} scale={VAULT_SCALE} />
       ) : item.imagePath ? (
         <ImageCardFace
           imagePath={item.imagePath}
