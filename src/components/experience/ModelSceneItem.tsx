@@ -2,9 +2,11 @@
 
 import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
+import { useControls } from 'leva'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 
+import { useDebugStore } from './debugStore'
 import {
   applyDoorItemMeshSpin,
   createDoorItemSpinTarget,
@@ -50,31 +52,46 @@ type ModelTuning = {
   targetSize: number
   /** Extra nudge applied after centering, on top of the bounding-box center. Negative = down. */
   verticalOffset: number
+  /** Static pitch baked into the model itself. */
+  rotationX: number
   /** Static yaw baked into the model itself, to fix which way it faces. */
   rotationY: number
+  /** Static roll baked into the model itself. */
+  rotationZ: number
   /** Gentle continuous idle wobble (sway/bob), always on regardless of focus. */
   ambientSway: boolean
+  /** Base tilt applied to outerRef every frame, before sway/tilt are added. */
+  outerRotationX: number
+  /** Base vertical offset applied to outerRef every frame, before bob is added. */
+  outerPositionY: number
 }
 
 // Applies to every 3D model EXCEPT the vault (detected below via its
 // VaultDoor mesh). Tweak these to change how any other model looks by
-// default — e.g. the GoogleAds logo currently uses this untouched.
+// default: e.g. the GoogleAds logo currently uses this untouched.
+// Defaults for both are also exposed live in the dev-only Leva panel (see
+// useControls calls below), these consts are just the panel's starting
+// values and the fallback once nothing has been overridden.
 const DEFAULT_MODEL_TUNING: ModelTuning = {
   targetSize: 1,
   verticalOffset: 0,
-  // The GoogleAds glb is exported facing sideways — this turns it to face
+  rotationX: 0,
+  // The GoogleAds glb is exported facing sideways, this turns it to face
   // the camera. Flip the sign if a future model ends up facing the wrong way.
   rotationY: Math.PI / 2,
+  rotationZ: 0,
   ambientSway: false,
+  outerRotationX: 0.03,
+  outerPositionY: -0.08,
 }
 
 // Vault-only overrides, layered on top of the defaults above. These values
-// were tuned by eye specifically for the vault — leave DEFAULT_MODEL_TUNING
+// were tuned by eye specifically for the vault. Leave DEFAULT_MODEL_TUNING
 // alone when adjusting the vault, and vice versa.
 const VAULT_MODEL_TUNING: ModelTuning = {
   ...DEFAULT_MODEL_TUNING,
   targetSize: 0.8,
-  // The model sits centred on its own bounding-box middle — the card-exit
+  // The model sits centred on its own bounding-box middle. The card-exit
   // alignment is tuned on the cards' side instead, via MEMORY_VERTICAL_BASELINE
   // in vaultHeroLogic.ts. This offset is a *second*, independent lever: it
   // nudges only the model (not the cards, not outerRef) up/down within its
@@ -88,7 +105,7 @@ const VAULT_MODEL_TUNING: ModelTuning = {
 
 // Box3.setFromObject(scene) measures in world space, which is contaminated
 // by outerRef's large fixed base rotation (~-126° yaw) once `scene` is
-// mounted under it — fine for the vault (its offsets were tuned by eye
+// mounted under it. This is fine for the vault (its offsets were tuned by eye
 // against that same measurement), but it throws off any other model's true
 // center, especially once that model gets its own rotation applied on top.
 // This measures purely relative to `root` itself, ignoring every ancestor.
@@ -125,13 +142,41 @@ export default function VaultSceneModel({
   modelUrl,
   focused,
   scale = 1,
+  label,
 }: {
   modelUrl: string
   focused: boolean
   scale?: number
+  /** This project's title, becomes this instance's own Leva folder, so
+   * every model gets independent sliders instead of sharing one "vault" or
+   * "other models" bucket with every other project of the same kind. */
+  label: string
 }) {
   const { scene } = useGLTF(modelUrl)
   const { clock } = useThree()
+  const debugStore = useDebugStore()
+
+  // Known synchronously: useGLTF suspends until `scene` is loaded, so by the
+  // time this line runs the mesh is already there to inspect. Only used to
+  // pick which preset seeds this instance's sliders: the vault keeps its
+  // door/handle/dial rig regardless.
+  const isVault = useMemo(() => Boolean(scene.getObjectByName('VaultDoor')), [scene])
+  const defaults = isVault ? VAULT_MODEL_TUNING : DEFAULT_MODEL_TUNING
+
+  const tuning = useControls(
+    label,
+    {
+      targetSize: { value: defaults.targetSize, min: 0.1, max: 3, step: 0.01 },
+      verticalOffset: { value: defaults.verticalOffset, min: -2, max: 2, step: 0.01 },
+      rotationX: { value: defaults.rotationX, min: -Math.PI, max: Math.PI, step: 0.01 },
+      rotationY: { value: defaults.rotationY, min: -Math.PI, max: Math.PI, step: 0.01 },
+      rotationZ: { value: defaults.rotationZ, min: -Math.PI, max: Math.PI, step: 0.01 },
+      ambientSway: defaults.ambientSway,
+      outerRotationX: { value: defaults.outerRotationX, min: -1, max: 1, step: 0.01 },
+      outerPositionY: { value: defaults.outerPositionY, min: -2, max: 2, step: 0.01 },
+    },
+    { store: debugStore ?? undefined },
+  ) as ModelTuning
 
   const outerRef = useRef<THREE.Group>(null)
   const modelWrapRef = useRef<THREE.Group>(null)
@@ -153,8 +198,8 @@ export default function VaultSceneModel({
 
   const pointerTiltRef = useRef({ x: 0, y: 0 })
   const currentTiltRef = useRef({ x: 0, y: 0 })
-  // True once the vault has fully finished closing (or hasn't opened yet) —
-  // skips the door/handle/dial/card math entirely so an always-mounted,
+  // True once the vault has fully finished closing (or hasn't opened yet).
+  // Skips the door/handle/dial/card math entirely so an always-mounted,
   // usually-idle vault doesn't do per-frame work forever.
   const isIdleRef = useRef(true)
 
@@ -171,12 +216,11 @@ export default function VaultSceneModel({
       if (child.name === 'VaultNumbers') numbersMesh = child
     })
 
-    const isVault = Boolean(door)
-    const tuning = isVault ? VAULT_MODEL_TUNING : DEFAULT_MODEL_TUNING
+    const hasDoor = Boolean(door)
     // The vault's measurement stays exactly as before (its offsets were
     // tuned against it); other models use the ancestor-independent version
     // so their centering is correct regardless of outerRef's base rotation.
-    const box = isVault ? new THREE.Box3().setFromObject(scene) : getLocalBoundingBox(scene)
+    const box = hasDoor ? new THREE.Box3().setFromObject(scene) : getLocalBoundingBox(scene)
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())
     const maxDimension = Math.max(size.x, size.y, size.z) || 1
@@ -184,14 +228,12 @@ export default function VaultSceneModel({
 
     if (modelWrapRef.current) {
       modelWrapRef.current.scale.setScalar(modelScale)
-      modelWrapRef.current.rotation.set(0, tuning.rotationY, 0)
+      const rotationEuler = new THREE.Euler(tuning.rotationX, tuning.rotationY, tuning.rotationZ)
+      modelWrapRef.current.rotation.copy(rotationEuler)
       // Rotation happens before translation in the local transform, so the
       // centering offset must be rotated the same way to still land the
       // model's bounding-box center at this group's origin.
-      const scaledCenter = center
-        .clone()
-        .multiplyScalar(modelScale)
-        .applyEuler(new THREE.Euler(0, tuning.rotationY, 0))
+      const scaledCenter = center.clone().multiplyScalar(modelScale).applyEuler(rotationEuler)
       modelWrapRef.current.position.set(
         -scaledCenter.x,
         -scaledCenter.y + tuning.verticalOffset,
@@ -200,7 +242,7 @@ export default function VaultSceneModel({
     }
 
     // Idempotency guard: this effect can run twice on the same cached scene
-    // (see createDoorItemSpinTarget's comment) — by the second run the door
+    // (see createDoorItemSpinTarget's comment): by the second run the door
     // may already have an in-progress rotation applied by useFrame, so only
     // ever capture the true closed rest angle once.
     let doorClosedRotationY = 0
@@ -218,7 +260,14 @@ export default function VaultSceneModel({
       handleTarget: handleMesh ? createDoorItemSpinTarget(handleMesh) : null,
       numbersTarget: numbersMesh ? createDoorItemSpinTarget(numbersMesh) : null,
     }
-  }, [scene])
+  }, [
+    scene,
+    tuning.targetSize,
+    tuning.verticalOffset,
+    tuning.rotationX,
+    tuning.rotationY,
+    tuning.rotationZ,
+  ])
 
   const triggerClose = (elapsed: number) => {
     if (sequenceStartRef.current === null) return
@@ -259,7 +308,7 @@ export default function VaultSceneModel({
       closeCompleteTimeRef.current = 0
     } else if (sequenceStartRef.current !== null) {
       // Only the else-branch of a real "was open, now closing" transition
-      // needs to run — a vault that was never opened has nothing to close.
+      // needs to run: a vault that was never opened has nothing to close.
       isIdleRef.current = false
       triggerClose(elapsed)
     }
@@ -291,10 +340,9 @@ export default function VaultSceneModel({
   useFrame((state) => {
     const elapsed = state.clock.elapsedTime
 
-    // The idle sway is a per-model-type flourish (vault: on) that runs all
-    // the time, independent of focus. Mouse-follow tilt is a separate lever
-    // that only kicks in once a card is the active/open one — for any model.
-    const tuning = rigRef.current.door ? VAULT_MODEL_TUNING : DEFAULT_MODEL_TUNING
+    // The idle sway is a per-model flourish (vault: on) that runs all the
+    // time, independent of focus. Mouse-follow tilt is a separate lever
+    // that only kicks in once a card is the active/open one, for any model.
     if (outerRef.current) {
       const tilt = currentTiltRef.current
       const target = pointerTiltRef.current
@@ -308,8 +356,8 @@ export default function VaultSceneModel({
       const tiltX = focused ? tilt.x * 0.1 : 0
 
       outerRef.current.rotation.y = vaultBaseRotationY + sway + tiltY
-      outerRef.current.rotation.x = 0.03 + bob + tiltX
-      outerRef.current.position.y = -0.08 + bobY
+      outerRef.current.rotation.x = tuning.outerRotationX + bob + tiltX
+      outerRef.current.position.y = tuning.outerPositionY + bobY
     }
 
     const rig = rigRef.current

@@ -19,7 +19,7 @@ async function seed() {
 
   const existing = await payload.find({ collection: 'projects', limit: 1 })
   if (existing.totalDocs > 0) {
-    payload.logger.info('Projects already exist — skipping seed.')
+    payload.logger.info('Projects already exist, skipping seed.')
     process.exit(0)
   }
 
@@ -97,7 +97,7 @@ async function seed() {
 }
 
 // Top-level await: `payload run` treats this module's promise resolution as
-// "the script is done" and lets the process exit — a floating (unawaited)
+// "the script is done" and lets the process exit. A floating (unawaited)
 // call here let the CLI move on and exit before any of seed()'s async DB
 // work actually ran.
 try {

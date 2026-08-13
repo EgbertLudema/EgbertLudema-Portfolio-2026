@@ -2,10 +2,15 @@
 
 import { RoundedBox, useTexture } from '@react-three/drei'
 import gsap from 'gsap'
+import { useControls } from 'leva'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
+import { useDebugStore } from './debugStore'
+import CrateModel from './CrateModel'
+import DiceModel from './DiceModel'
 import FigmaStackModel from './FigmaStackModel'
+import NodeGraphModel from './NodeGraphModel'
 import type { ExperienceItem } from './items'
 import { useGradientTexture } from './useGradientTexture'
 import VaultSceneModel from './ModelSceneItem'
@@ -94,49 +99,100 @@ export default function CardItem({
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const cardMatRef = useRef<THREE.MeshStandardMaterial>(null)
+  const debugStore = useDebugStore()
+
+  const tuning = useControls(
+    'Card Group',
+    {
+      unfocusedScale: { value: 0.74, min: 0.1, max: 2, step: 0.01 },
+      unfocusedRotationX: { value: 0, min: -Math.PI, max: Math.PI, step: 0.01 },
+      unfocusedRotationY: { value: -0.26, min: -Math.PI, max: Math.PI, step: 0.01 },
+      unfocusedRotationZ: { value: 0, min: -Math.PI, max: Math.PI, step: 0.01 },
+      focusedScale: { value: 1, min: 0.1, max: 2, step: 0.01 },
+      focusedRotationX: { value: 0, min: -Math.PI, max: Math.PI, step: 0.01 },
+      focusedRotationY: { value: -0.06, min: -Math.PI, max: Math.PI, step: 0.01 },
+      focusedRotationZ: { value: 0, min: -Math.PI, max: Math.PI, step: 0.01 },
+      focusedPositionY: { value: 0.16, min: -2, max: 2, step: 0.01 },
+      tweenDuration: { value: 0.85, min: 0.1, max: 3, step: 0.01 },
+    },
+    { store: debugStore ?? undefined },
+  )
 
   useEffect(() => {
     if (!groupRef.current) return
     gsap.to(groupRef.current.scale, {
-      x: focused ? 1 : 0.74,
-      y: focused ? 1 : 0.74,
-      z: focused ? 1 : 0.74,
-      duration: 0.85,
+      x: focused ? tuning.focusedScale : tuning.unfocusedScale,
+      y: focused ? tuning.focusedScale : tuning.unfocusedScale,
+      z: focused ? tuning.focusedScale : tuning.unfocusedScale,
+      duration: tuning.tweenDuration,
       ease: 'power3.out',
     })
     gsap.to(groupRef.current.position, {
-      y: focused ? 0.16 : 0,
-      duration: 0.85,
+      y: focused ? tuning.focusedPositionY : 0,
+      duration: tuning.tweenDuration,
       ease: 'power3.out',
     })
     gsap.to(groupRef.current.rotation, {
-      y: focused ? -0.06 : -0.26,
-      duration: 0.85,
+      x: focused ? tuning.focusedRotationX : tuning.unfocusedRotationX,
+      y: focused ? tuning.focusedRotationY : tuning.unfocusedRotationY,
+      z: focused ? tuning.focusedRotationZ : tuning.unfocusedRotationZ,
+      duration: tuning.tweenDuration,
       ease: 'power3.out',
     })
     if (cardMatRef.current) {
       gsap.to(cardMatRef.current, {
         opacity: focused ? 1 : 0.55,
-        duration: 0.85,
+        duration: tuning.tweenDuration,
         ease: 'power3.out',
       })
     }
-  }, [focused])
+  }, [focused, tuning])
 
   return (
     <group
       ref={groupRef}
-      rotation={[0, -0.26, 0]}
-      scale={0.74}
+      rotation={[tuning.unfocusedRotationX, tuning.unfocusedRotationY, tuning.unfocusedRotationZ]}
+      scale={tuning.unfocusedScale}
       onClick={(e) => {
         e.stopPropagation()
         onSelect()
       }}
     >
       {item.type === 'model' && item.modelPath ? (
-        <VaultSceneModel modelUrl={item.modelPath} focused={focused} scale={VAULT_SCALE} />
+        <VaultSceneModel
+          modelUrl={item.modelPath}
+          focused={focused}
+          scale={VAULT_SCALE}
+          label={item.title}
+        />
       ) : item.type === 'figma' && item.modelPath ? (
-        <FigmaStackModel modelUrl={item.modelPath} focused={focused} scale={VAULT_SCALE} />
+        <FigmaStackModel
+          modelUrl={item.modelPath}
+          focused={focused}
+          scale={VAULT_SCALE}
+          label={item.title}
+        />
+      ) : item.type === 'nodegraph' && item.modelPath ? (
+        <NodeGraphModel
+          modelUrl={item.modelPath}
+          focused={focused}
+          scale={VAULT_SCALE}
+          label={item.title}
+        />
+      ) : item.type === 'dice' && item.modelPath ? (
+        <DiceModel
+          modelUrl={item.modelPath}
+          focused={focused}
+          scale={VAULT_SCALE}
+          label={item.title}
+        />
+      ) : item.type === 'crate' && item.modelPath ? (
+        <CrateModel
+          modelUrl={item.modelPath}
+          focused={focused}
+          scale={VAULT_SCALE}
+          label={item.title}
+        />
       ) : item.imagePath ? (
         <ImageCardFace
           imagePath={item.imagePath}

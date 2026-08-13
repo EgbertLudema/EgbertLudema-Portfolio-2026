@@ -2,26 +2,31 @@
 
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
+import { useControls } from 'leva'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
+import { useDebugStore } from './debugStore'
 import { getLocalBoundingBox } from './ModelSceneItem'
 
-const SPREAD_CLOSED = 0.45
+const SPREAD_CLOSED = 0.56
 const SPREAD_OPEN = 1.45
 const EASE_SPREAD = 6.0
+const ROTATION_X = 0.59
+const ROTATION_Y = -0.53
+const ROTATION_Z = 0.29
 
 // The glb's authored Frame_N positions are the "1.0x" pose this normalizes
-// against — closed/open then naturally scale to ~0.45x/1.45x of this
+// against: closed/open then naturally scale to ~0.45x/1.45x of this
 // footprint, so the *closed* card reads at roughly TARGET_SIZE * 0.45.
-const TARGET_SIZE = 1.3
+const TARGET_SIZE = 1.25
 
 const FRAME_NAME = /^Frame_\d+$/
 
 type FrameNode = { node: THREE.Object3D; base: THREE.Vector3 }
 
 /** The stack's `Frame_0..Frame_N` groups are already positioned in the glb
- * at their fully-open "base" offset — spreading/closing just scales that
+ * at their fully-open "base" offset. Spreading/closing just scales that
  * vector by a 0.45–1.45 multiplier, same as the reference this was rigged
  * against. No idle auto-spin: only mouse-follow tilt while the card is
  * active, and the open/close spread driven by `focused`. */
@@ -29,17 +34,37 @@ export default function FigmaStackModel({
   modelUrl,
   focused,
   scale = 1,
+  label,
 }: {
   modelUrl: string
   focused: boolean
   scale?: number
+  /** This project's title, becomes this instance's own Leva folder, so
+   * every model gets independent sliders rather than sharing one bucket
+   * with every other project of the same kind. */
+  label: string
 }) {
   const { scene } = useGLTF(modelUrl)
+  const debugStore = useDebugStore()
+
+  const tuning = useControls(
+    label,
+    {
+      targetSize: { value: TARGET_SIZE, min: 0.1, max: 3, step: 0.01 },
+      rotationX: { value: ROTATION_X, min: -Math.PI, max: Math.PI, step: 0.01 },
+      rotationY: { value: ROTATION_Y, min: -Math.PI, max: Math.PI, step: 0.01 },
+      rotationZ: { value: ROTATION_Z, min: -Math.PI, max: Math.PI, step: 0.01 },
+      spreadClosed: { value: SPREAD_CLOSED, min: 0, max: 2, step: 0.01 },
+      spreadOpen: { value: SPREAD_OPEN, min: 0, max: 3, step: 0.01 },
+      easeSpread: { value: EASE_SPREAD, min: 0.5, max: 20, step: 0.1 },
+    },
+    { store: debugStore ?? undefined },
+  )
 
   const outerRef = useRef<THREE.Group>(null)
   const modelWrapRef = useRef<THREE.Group>(null)
   const frameNodesRef = useRef<FrameNode[]>([])
-  const spreadRef = useRef(SPREAD_CLOSED)
+  const spreadRef = useRef(tuning.spreadClosed)
   const pointerTiltRef = useRef({ x: 0, y: 0 })
   const currentTiltRef = useRef({ x: 0, y: 0 })
 
@@ -48,22 +73,24 @@ export default function FigmaStackModel({
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())
     const maxDimension = Math.max(size.x, size.y, size.z) || 1
-    const modelScale = TARGET_SIZE / maxDimension
+    const modelScale = tuning.targetSize / maxDimension
 
     if (modelWrapRef.current) {
       modelWrapRef.current.scale.setScalar(modelScale)
-      modelWrapRef.current.position.set(
-        -center.x * modelScale,
-        -center.y * modelScale,
-        -center.z * modelScale,
-      )
+      const rotationEuler = new THREE.Euler(tuning.rotationX, tuning.rotationY, tuning.rotationZ)
+      modelWrapRef.current.rotation.copy(rotationEuler)
+      // Rotation happens before translation in the local transform, so the
+      // centering offset must be rotated the same way to still land the
+      // model's bounding-box center at this group's origin.
+      const scaledCenter = center.clone().multiplyScalar(modelScale).applyEuler(rotationEuler)
+      modelWrapRef.current.position.set(-scaledCenter.x, -scaledCenter.y, -scaledCenter.z)
     }
 
     const frames: FrameNode[] = []
     scene.traverse((child) => {
       if (!FRAME_NAME.test(child.name)) return
       // Idempotency guard: this effect can re-run on the same cached scene
-      // (useGLTF caches by url) — only ever capture each frame's authored
+      // (useGLTF caches by url), only ever capture each frame's authored
       // rest position once, so a second run doesn't re-baseline off an
       // already-animated (mid-spread) position.
       if (!child.userData.baseOffset) {
@@ -72,7 +99,7 @@ export default function FigmaStackModel({
       frames.push({ node: child, base: child.userData.baseOffset as THREE.Vector3 })
     })
     frameNodesRef.current = frames
-  }, [scene])
+  }, [scene, tuning.targetSize, tuning.rotationX, tuning.rotationY, tuning.rotationZ])
 
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
@@ -95,8 +122,8 @@ export default function FigmaStackModel({
   }, [])
 
   useFrame((_, delta) => {
-    const target = focused ? SPREAD_OPEN : SPREAD_CLOSED
-    spreadRef.current += (target - spreadRef.current) * (1 - Math.exp(-EASE_SPREAD * delta))
+    const target = focused ? tuning.spreadOpen : tuning.spreadClosed
+    spreadRef.current += (target - spreadRef.current) * (1 - Math.exp(-tuning.easeSpread * delta))
 
     frameNodesRef.current.forEach(({ node, base }) => {
       node.position.copy(base).multiplyScalar(spreadRef.current)

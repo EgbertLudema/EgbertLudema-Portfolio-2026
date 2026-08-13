@@ -71,6 +71,7 @@ export interface Config {
     media: Media;
     models: Model;
     projects: Project;
+    skills: Skill;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -82,6 +83,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     models: ModelsSelect<false> | ModelsSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
+    skills: SkillsSelect<false> | SkillsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -211,7 +213,25 @@ export interface Project {
    * Short description shown under the title.
    */
   description: string;
-  type: 'image' | 'model' | 'figma';
+  /**
+   * Full case-study write-up, shown on this project's detail page.
+   */
+  content?: string | null;
+  /**
+   * Large image at the top of the project detail page.
+   */
+  heroImage?: (number | null) | Media;
+  /**
+   * Extra images further down the project detail page, each with an optional caption.
+   */
+  gallery?:
+    | {
+        image: number | Media;
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  type: 'image' | 'model' | 'figma' | 'nodegraph' | 'dice' | 'crate';
   /**
    * Shown as the card artwork for this project.
    */
@@ -221,7 +241,7 @@ export interface Project {
    */
   model?: (number | null) | Model;
   /**
-   * Gradient/accent color — used as a placeholder while no image is set, and as a subtle tint elsewhere.
+   * Gradient/accent color: used as a placeholder while no image is set, and as a subtle tint elsewhere.
    */
   accentColorA?: string | null;
   accentColorB?: string | null;
@@ -229,6 +249,31 @@ export interface Project {
    * Lower numbers appear first in the list.
    */
   order?: number | null;
+  /**
+   * Skills used on this project, powering the future skills-hover section.
+   */
+  skills?: (number | Skill)[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Skills that can be linked to projects, powering a future skills-hover section.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills".
+ */
+export interface Skill {
+  id: number;
+  title: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  /**
+   * Short description of this skill.
+   */
+  description?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -271,6 +316,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'projects';
         value: number | Project;
+      } | null)
+    | ({
+        relationTo: 'skills';
+        value: number | Skill;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -382,12 +431,34 @@ export interface ProjectsSelect<T extends boolean = true> {
   slug?: T;
   category?: T;
   description?: T;
+  content?: T;
+  heroImage?: T;
+  gallery?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
   type?: T;
   image?: T;
   model?: T;
   accentColorA?: T;
   accentColorB?: T;
   order?: T;
+  skills?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills_select".
+ */
+export interface SkillsSelect<T extends boolean = true> {
+  title?: T;
+  generateSlug?: T;
+  slug?: T;
+  description?: T;
   updatedAt?: T;
   createdAt?: T;
 }

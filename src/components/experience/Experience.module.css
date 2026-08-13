@@ -26,6 +26,13 @@
   pointer-events: none;
 }
 
+.topBarLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
 .mark {
   pointer-events: auto;
   font-family: var(--font-sans);
@@ -47,7 +54,7 @@
 .clock {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 4px;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -60,6 +67,26 @@
 
 .clockTime {
   color: var(--color-accent-strong);
+}
+
+.topNav {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.topNavLink {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  transition: color 0.2s ease;
+}
+
+.topNavLink:hover {
+  color: var(--color-ink-soft);
 }
 
 .bottomLeft {
@@ -106,11 +133,10 @@
 
 .title {
   font-family: var(--font-title);
-  font-style: italic;
-  font-weight: 400;
+  font-weight: 540;
   font-size: clamp(2.4rem, 5vw, 3.75rem);
   line-height: 1.05;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   color: var(--color-ink);
   margin-bottom: 12px;
 }
@@ -122,6 +148,24 @@
   color: var(--color-ink-soft);
 }
 
+.viewProject {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  transition: color 0.2s ease;
+}
+
+.viewProject:hover {
+  color: var(--color-accent-strong);
+}
+
 .list {
   position: absolute;
   right: 40px;
@@ -131,6 +175,16 @@
   align-items: flex-end;
   gap: 11px;
   z-index: 10;
+}
+
+.travelDot {
+  position: absolute;
+  width: 5.6px;
+  height: 5.6px;
+  border-radius: 50%;
+  background: var(--color-accent-strong);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .listItem {
@@ -153,19 +207,12 @@
   height: 4px;
   border-radius: 50%;
   background: transparent;
-  transition:
-    background 0.3s ease,
-    transform 0.3s ease;
 }
 
 .listItemActive {
   color: var(--color-ink);
-  font-family: var(--font-sans);
-}
-
-.listItemActive .listDot {
-  background: var(--color-accent-strong);
-  transform: scale(1.4);
+  font-family: var(--font-title);
+  font-weight: 540;
 }
 
 @keyframes riseIn {
@@ -190,6 +237,10 @@
   }
 
   .list {
+    display: none;
+  }
+
+  .topNav {
     display: none;
   }
 

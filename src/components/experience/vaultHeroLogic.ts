@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { drawHeroEnvelope, drawSquirclePath } from '@/lib/heroEnvelope'
 
-// Pure, framework-agnostic vault animation logic — extracted verbatim from
+// Pure, framework-agnostic vault animation logic, extracted verbatim from
 // the original VaultHeroModel so it can run inside the row's shared R3F
 // canvas via useFrame instead of a second, standalone WebGLRenderer.
 
@@ -64,8 +64,8 @@ export const memoryPopDelay = 0.18
 export const memoryPopDuration = 0.42
 export const memoryOrbitArrivalTime = 6.25
 // The vault model's own bounding-box centre (used to place it at the local
-// origin) sits well below its door — the box includes the base/feet, which
-// pulls the geometric centre down — so cards popping out of "the origin"
+// origin) sits well below its door: the box includes the base/feet, which
+// pulls the geometric centre down, so cards popping out of "the origin"
 // read as emerging from below the vault entirely. Lifting the shared exit
 // point (and the orbit's own vertical baseline, below) compensates without
 // having to fight the model's own centring.
@@ -388,7 +388,7 @@ export function createMemoryTexture(card: HeroMemoryCard, index: number) {
   }
 
   const texture = new THREE.CanvasTexture(canvas)
-  // These canvases are 256x320 — not power-of-two — so mipmapping is a
+  // These canvases are 256x320 (not power-of-two), so mipmapping is a
   // needless compatibility risk on some GPUs/drivers for what's flat 2D
   // content anyway.
   texture.generateMipmaps = false
@@ -437,7 +437,7 @@ export function createMemoryCardStates(): MemoryCardState[] {
  * Re-homes a mesh under a pivot Group positioned at the mesh's own
  * bounding-box centre, so it can be spun in place with a plain GPU transform
  * instead of rewriting every vertex position (and recomputing normals from
- * scratch) on the CPU every single frame — that per-frame vertex rewrite is
+ * scratch) on the CPU every single frame. That per-frame vertex rewrite is
  * expensive enough, running indefinitely for the vault's whole lifetime, to
  * risk GPU driver instability on real hardware.
  */
@@ -451,7 +451,7 @@ export function createDoorItemSpinTarget(mesh: THREE.Object3D): DoorItemSpinTarg
   // than once on the same scene (Suspense-loaded components get a real
   // double-invoke in dev, not just React's synthetic double-effect). A
   // second call would re-parent an already-centred mesh into a *second*
-  // pivot, doubling the offset and visibly displacing the part — so once a
+  // pivot, doubling the offset and visibly displacing the part, so once a
   // mesh has a pivot, just hand back the existing one.
   const existingPivot = mesh.userData.doorItemPivot as THREE.Object3D | undefined
   if (existingPivot) {
@@ -472,7 +472,7 @@ export function createDoorItemSpinTarget(mesh: THREE.Object3D): DoorItemSpinTarg
 
   const baseQuaternion = mesh.quaternion.clone()
   // The pivot must land at the mesh's true geometric centre *in the parent's
-  // space*, not at the mesh's own local origin — those only coincide if the
+  // space*, not at the mesh's own local origin: those only coincide if the
   // origin already sits at the bounding-box centre. Skipping this transform
   // is what made the handle and dial jump on top of each other instead of
   // staying at their modelled spots on the door.
@@ -499,7 +499,7 @@ const scratchSpinQuaternion = new THREE.Quaternion()
 
 /**
  * Spins the pivot around its fixed axis while preserving the item's
- * originally modelled orientation on the door — the spin quaternion is
+ * originally modelled orientation on the door: the spin quaternion is
  * composed on top of the base orientation, not written over it, so the
  * handle/dial keep the tilt they had in the glb instead of snapping flat
  * the moment the vault starts animating.

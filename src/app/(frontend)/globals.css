@@ -9,7 +9,8 @@
 
   --font-sans: 'Athelas', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
-  --font-title: 'Vanguard', 'Athelas', Georgia, serif;
+  /* --font-title itself comes from next/font (Bricolage Grotesque), applied
+     via a className on <html> in layout.tsx. */
 }
 
 * {

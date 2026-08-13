@@ -3,10 +3,12 @@
 import { PerspectiveCamera } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
 import gsap from 'gsap'
+import { useControls } from 'leva'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
 import CardItem from './CardItem'
+import { useDebugStore } from './debugStore'
 import type { ExperienceItem } from './items'
 
 export const SPACING = 1.3
@@ -64,6 +66,21 @@ export default function Scene({
 }) {
   const frameCountRef = useRef(0)
   const startTimeRef = useRef(0)
+  const debugStore = useDebugStore()
+
+  const camera = useControls(
+    'Camera',
+    {
+      positionX: { value: -2.6, min: -10, max: 10, step: 0.1 },
+      positionY: { value: 1.1, min: -10, max: 10, step: 0.1 },
+      positionZ: { value: 6.4, min: -10, max: 20, step: 0.1 },
+      fov: { value: 40, min: 10, max: 100, step: 1 },
+      lookAtX: { value: 0.8, min: -10, max: 10, step: 0.1 },
+      lookAtY: { value: 0, min: -10, max: 10, step: 0.1 },
+      lookAtZ: { value: 0, min: -10, max: 10, step: 0.1 },
+    },
+    { store: debugStore ?? undefined },
+  )
 
   return (
     <Canvas
@@ -93,7 +110,7 @@ export default function Scene({
           event.preventDefault()
           const ctxEvent = event as WebGLContextEvent
           // Recovery is automatic (see onContextLost below), so this is
-          // diagnostic, not a crash report — console.warn instead of
+          // diagnostic, not a crash report. console.warn instead of
           // console.error keeps Next's dev overlay from flagging it as an
           // unhandled issue.
           // eslint-disable-next-line no-console
@@ -103,7 +120,7 @@ export default function Scene({
             statusMessage: ctxEvent.statusMessage || '(none provided)',
             glError: gl.getContext().getError(),
           })
-          // R3F has no built-in recovery for a lost context — rather than
+          // R3F has no built-in recovery for a lost context, so rather than
           // hope the browser restores it and that three.js's render loop
           // notices, force a clean remount of the whole Canvas so the user
           // sees the scene come back instead of a permanently blank stage.
@@ -120,13 +137,13 @@ export default function Scene({
     >
       <PerspectiveCamera
         makeDefault
-        fov={40}
-        position={[-2.6, 1.1, 6.4]}
-        onUpdate={(camera) => camera.lookAt(0.8, 0, 0)}
+        fov={camera.fov}
+        position={[camera.positionX, camera.positionY, camera.positionZ]}
+        onUpdate={(cam) => cam.lookAt(camera.lookAtX, camera.lookAtY, camera.lookAtZ)}
       />
       <hemisphereLight intensity={1.1} color="#ffffff" groundColor="#7c3aed" />
       <directionalLight position={[3.8, 4.4, 4.8]} intensity={2.2} />
-      {/* Fill light on the left — the single key light above leaves that
+      {/* Fill light on the left: the single key light above leaves that
           side of the models in shadow, this softens it without competing. */}
       <directionalLight position={[-4.2, 2.6, 3.4]} intensity={1} />
       <FrameCounter countRef={frameCountRef} />
