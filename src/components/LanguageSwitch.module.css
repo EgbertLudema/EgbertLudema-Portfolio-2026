@@ -1,0 +1,32 @@
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.divider {
+  color: var(--color-line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.link {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: var(--color-ink-soft);
+}
+
+.linkActive {
+  color: var(--color-accent-strong);
+}
+
+.linkActive:hover {
+  color: var(--color-accent-strong);
+}

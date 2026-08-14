@@ -11,6 +11,13 @@
   padding: 100px 24px 140px;
 }
 
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
 .back {
   display: inline-flex;
   align-items: center;
@@ -59,12 +66,47 @@
   max-width: 60ch;
 }
 
+.linkRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.linkPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border: 1px solid var(--color-accent-strong);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-strong);
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    gap 0.2s ease;
+}
+
+.linkPill:hover {
+  color: #ffffff;
+  background: var(--color-accent-strong);
+  gap: 10px;
+}
+
 .heroImage {
+  display: block;
   width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
+  height: auto;
+  max-height: 80vh;
+  object-fit: contain;
   border-radius: 4px;
   border: 1px solid var(--color-line);
+  background: var(--color-bg);
   margin-bottom: 56px;
 }
 
@@ -80,6 +122,64 @@
   font-size: 16px;
   line-height: 1.75;
   color: var(--color-ink-soft);
+  overflow-wrap: break-word;
+}
+
+/* Headings inside a project's write-up (see renderContent's "## "/"### "
+   syntax). A "## " heading can carry a "{color}" tag to mark which section
+   of a model/framework it belongs to - the colored dot plus tinted text is
+   the "obviously from that section" cue, independent of the rest of the
+   (otherwise monochrome) body copy. */
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  margin-top: 12px;
+}
+
+.heading::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+}
+
+.headingPurple {
+  color: #8f7cc7;
+}
+
+.headingOrange {
+  color: #c07a3e;
+}
+
+.headingYellow {
+  color: #b3902a;
+}
+
+.headingGreen {
+  color: #4c9a67;
+}
+
+.headingPurple::before,
+.headingOrange::before,
+.headingYellow::before,
+.headingGreen::before {
+  opacity: 1;
+}
+
+.subheading {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-ink);
 }
 
 .listBlock {
@@ -95,6 +195,7 @@
   font-size: 16px;
   line-height: 1.6;
   color: var(--color-ink-soft);
+  overflow-wrap: break-word;
 }
 
 .sectionLabel {
@@ -106,32 +207,43 @@
   margin-bottom: 20px;
 }
 
-.gallery {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+.relatedList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 64px;
 }
 
-.galleryFigure {
-  margin: 0;
-}
-
-.galleryImage {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: 4px;
+.relatedCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 20px;
   border: 1px solid var(--color-line);
-  display: block;
+  border-radius: 4px;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
-.galleryCaption {
-  margin-top: 8px;
+.relatedCard:hover {
+  border-color: var(--color-accent-strong);
+  background: rgba(143, 124, 199, 0.05);
+}
+
+.relatedCategory {
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--color-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent-strong);
+}
+
+.relatedTitle {
+  font-family: var(--font-title);
+  font-weight: 540;
+  font-size: 1.15rem;
+  color: var(--color-ink);
 }
 
 .skills {
@@ -143,16 +255,46 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .skillChip {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.03em;
   color: var(--color-ink-soft);
+  background: none;
   border: 1px solid var(--color-line);
   border-radius: 999px;
   padding: 7px 16px;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.skillChip:hover {
+  color: var(--color-ink);
+  border-color: var(--color-accent-strong);
+}
+
+.skillChipActive {
+  color: #ffffff;
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+}
+
+.skillChipActive:hover {
+  color: #ffffff;
+}
+
+.projectsSection {
+  margin-top: 40px;
 }
 
 .skillsEmpty {
@@ -182,9 +324,5 @@
 @media (max-width: 720px) {
   .article {
     padding: 80px 20px 100px;
-  }
-
-  .gallery {
-    grid-template-columns: 1fr;
   }
 }

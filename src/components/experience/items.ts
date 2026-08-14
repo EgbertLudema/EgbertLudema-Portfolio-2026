@@ -6,7 +6,7 @@ export type ExperienceItem = {
    *  edits and ready to key a future project page/modal route off of. */
   id: string
   slug: string
-  type: 'image' | 'model' | 'figma' | 'nodegraph' | 'dice' | 'crate'
+  type: 'image' | 'model' | 'figma' | 'nodegraph' | 'dice' | 'crate' | 'smartphone' | 'monitor'
   title: string
   category: string
   description: string
@@ -15,4 +15,6 @@ export type ExperienceItem = {
   modelPath?: string
   imagePath?: string
   imageAspect?: number
+  screenImagePath?: string
+  screenImageAspect?: number
 }

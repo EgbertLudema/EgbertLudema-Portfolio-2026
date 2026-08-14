@@ -1,20 +1,21 @@
-import Link from 'next/link'
-
+import { getDictionary } from '@/lib/i18n'
+import { getLocale } from '@/lib/getLocale'
+import TransitionLink from '@/components/TransitionLink'
 import styles from './PageShell.module.css'
 
-export default function NotFound() {
+export default async function NotFound() {
+  const locale = await getLocale()
+  const t = getDictionary(locale)
+
   return (
     <main className={styles.stage}>
       <article className={styles.article}>
-        <Link href="/" className={styles.back}>
-          &larr; Back to portfolio
-        </Link>
+        <TransitionLink href="/" className={styles.back}>
+          &larr; {t.common.backToPortfolio}
+        </TransitionLink>
         <header className={styles.header}>
-          <h1 className={styles.title}>Not found</h1>
-          <p className={styles.description}>
-            There&apos;s nothing here. The page or project you&apos;re looking for doesn&apos;t
-            exist.
-          </p>
+          <h1 className={styles.title}>{t.notFound.heading}</h1>
+          <p className={styles.description}>{t.notFound.body}</p>
         </header>
       </article>
     </main>

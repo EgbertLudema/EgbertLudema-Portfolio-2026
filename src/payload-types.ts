@@ -92,10 +92,18 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
-  locale: null;
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'nl') | ('en' | 'nl')[];
+  globals: {
+    'about-page': AboutPage;
+    'contact-page': ContactPage;
+    'skills-page': SkillsPage;
+  };
+  globalsSelect: {
+    'about-page': AboutPageSelect<false> | AboutPageSelect<true>;
+    'contact-page': ContactPageSelect<false> | ContactPageSelect<true>;
+    'skills-page': SkillsPageSelect<false> | SkillsPageSelect<true>;
+  };
+  locale: 'en' | 'nl';
   widgets: {
     collections: CollectionsWidget;
   };
@@ -214,7 +222,20 @@ export interface Project {
    */
   description: string;
   /**
-   * Full case-study write-up, shown on this project's detail page.
+   * External links shown on this project's detail page, e.g. "Visit site", "GitHub", "App Store".
+   */
+  links?:
+    | {
+        /**
+         * Button text, e.g. "Visit site"
+         */
+        label: string;
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Full case-study write-up, shown on this project's detail page. Blank lines separate paragraphs; a line starting with "- " becomes a bullet list. A line on its own starting with "## " becomes a heading — add " {purple}", " {orange}", " {yellow}", or " {green}" at the end to color it, e.g. "## Intensie {purple}", to mark which section of a model it belongs to. "### " makes a smaller, uncolored sub-heading.
    */
   content?: string | null;
   /**
@@ -231,7 +252,7 @@ export interface Project {
         id?: string | null;
       }[]
     | null;
-  type: 'image' | 'model' | 'figma' | 'nodegraph' | 'dice' | 'crate';
+  type: 'image' | 'model' | 'figma' | 'nodegraph' | 'dice' | 'crate' | 'smartphone' | 'monitor';
   /**
    * Shown as the card artwork for this project.
    */
@@ -241,7 +262,11 @@ export interface Project {
    */
   model?: (number | null) | Model;
   /**
-   * Gradient/accent color: used as a placeholder while no image is set, and as a subtle tint elsewhere.
+   * Shown on the phone/monitor screen (its homescreen, or a site screenshot).
+   */
+  homeScreenImage?: (number | null) | Media;
+  /**
+   * Gradient/accent color: used as a placeholder while no image is set, as the mat/background behind an image card (Type = Image), and as a subtle tint elsewhere.
    */
   accentColorA?: string | null;
   accentColorB?: string | null;
@@ -253,6 +278,10 @@ export interface Project {
    * Skills used on this project, powering the future skills-hover section.
    */
   skills?: (number | Skill)[] | null;
+  /**
+   * Other projects to cross-link on this project's page, e.g. a case study and the model/framework it applies. Add the link on both sides to cross-link them.
+   */
+  relatedProjects?: (number | Project)[] | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -431,6 +460,13 @@ export interface ProjectsSelect<T extends boolean = true> {
   slug?: T;
   category?: T;
   description?: T;
+  links?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
   content?: T;
   heroImage?: T;
   gallery?:
@@ -443,10 +479,12 @@ export interface ProjectsSelect<T extends boolean = true> {
   type?: T;
   image?: T;
   model?: T;
+  homeScreenImage?: T;
   accentColorA?: T;
   accentColorB?: T;
   order?: T;
   skills?: T;
+  relatedProjects?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -501,6 +539,112 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Content for the /about page.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "about-page".
+ */
+export interface AboutPage {
+  id: number;
+  /**
+   * Small label shown above the title, e.g. "ABOUT · 2026"
+   */
+  category?: string | null;
+  title: string;
+  /**
+   * Short intro shown under the title.
+   */
+  description: string;
+  /**
+   * Optional longer write-up, shown below the intro. Blank lines start a new paragraph; lines starting with "- " become a bullet list.
+   */
+  content?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Content for the /contact page.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-page".
+ */
+export interface ContactPage {
+  id: number;
+  /**
+   * Small label shown above the title, e.g. "CONTACT · 2026"
+   */
+  category?: string | null;
+  title: string;
+  /**
+   * Short intro shown under the title.
+   */
+  description: string;
+  /**
+   * Shown as a mailto: link.
+   */
+  email: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Header content for the /skills page. The skill list itself comes from the Skills collection.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills-page".
+ */
+export interface SkillsPage {
+  id: number;
+  /**
+   * Small label shown above the title, e.g. "SKILLS · 2026"
+   */
+  category?: string | null;
+  title: string;
+  /**
+   * Short intro shown under the title.
+   */
+  description: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "about-page_select".
+ */
+export interface AboutPageSelect<T extends boolean = true> {
+  category?: T;
+  title?: T;
+  description?: T;
+  content?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-page_select".
+ */
+export interface ContactPageSelect<T extends boolean = true> {
+  category?: T;
+  title?: T;
+  description?: T;
+  email?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills-page_select".
+ */
+export interface SkillsPageSelect<T extends boolean = true> {
+  category?: T;
+  title?: T;
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

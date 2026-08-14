@@ -2,9 +2,12 @@
 
 import gsap from 'gsap'
 import { button, LevaPanel, useControls, useCreateStore } from 'leva'
-import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import LanguageSwitch from '@/components/LanguageSwitch'
+import TransitionLink from '@/components/TransitionLink'
+import { getDictionary } from '@/lib/i18n'
+import type { Locale } from '@/lib/locale'
 import Clock from './Clock'
 import { DebugStoreProvider, isDev } from './debugStore'
 import styles from './Experience.module.css'
@@ -75,7 +78,8 @@ const MAX_CANVAS_RECOVERIES = 5
 // doesn't visibly outrun a mostly-vertical one.
 const DOT_SPEED = 550
 
-export default function Experience({ items }: { items: ExperienceItem[] }) {
+export default function Experience({ items, locale }: { items: ExperienceItem[]; locale: Locale }) {
+  const t = getDictionary(locale)
   const debugStore = useCreateStore()
   const [activeIndex, setActiveIndex] = useState(0)
   const [canvasKey, setCanvasKey] = useState(0)
@@ -261,7 +265,7 @@ export default function Experience({ items }: { items: ExperienceItem[] }) {
     return (
       <main className={styles.stage}>
         <div className={styles.bottomCenter}>
-          <p className={styles.description}>No projects yet. Add some in the Payload admin.</p>
+          <p className={styles.description}>{t.home.noProjects}</p>
         </div>
       </main>
     )
@@ -283,9 +287,7 @@ export default function Experience({ items }: { items: ExperienceItem[] }) {
                 justifyContent: 'center',
               }}
             >
-              <p className={styles.description}>
-                The 3D view keeps crashing on this device. Refresh to try again.
-              </p>
+              <p className={styles.description}>{t.home.webglError}</p>
             </div>
           ) : (
             <Scene
@@ -302,23 +304,24 @@ export default function Experience({ items }: { items: ExperienceItem[] }) {
           <div className={styles.topBarLeft}>
             <span className={styles.mark}>
               <span className={styles.markDot} />
-              portfolio
+              {t.nav.mark}
             </span>
-            <Clock />
+            <Clock locale={locale} />
           </div>
-          <nav className={styles.topNav} aria-label="Site navigation">
-            <Link href="/about" className={styles.topNavLink}>
-              About me
-            </Link>
-            <Link href="/skills" className={styles.topNavLink}>
-              Skills
-            </Link>
-            <Link href="/" className={styles.topNavLink}>
-              Projects
-            </Link>
-            <Link href="/contact" className={styles.topNavLink}>
-              Contact
-            </Link>
+          <nav className={styles.topNav} aria-label={t.nav.siteNavigation}>
+            <TransitionLink href="/about" className={styles.topNavLink}>
+              {t.nav.about}
+            </TransitionLink>
+            <TransitionLink href="/skills" className={styles.topNavLink}>
+              {t.nav.skills}
+            </TransitionLink>
+            <TransitionLink href="/" className={styles.topNavLink}>
+              {t.nav.projects}
+            </TransitionLink>
+            <TransitionLink href="/contact" className={styles.topNavLink}>
+              {t.nav.contact}
+            </TransitionLink>
+            <LanguageSwitch locale={locale} />
           </nav>
         </header>
 
@@ -326,19 +329,19 @@ export default function Experience({ items }: { items: ExperienceItem[] }) {
           <span className={styles.index}>
             {String(activeIndex + 1).padStart(2, '0')} / {String(items.length).padStart(2, '0')}
           </span>
-          <span>scroll · arrows</span>
+          <span>{t.home.scrollHint}</span>
         </div>
 
         <div className={styles.bottomCenter} key={active.id}>
           <p className={styles.category}>{active.category}</p>
           <h1 className={styles.title}>{active.title}</h1>
           <p className={styles.description}>{active.description}</p>
-          <Link href={`/projects/${active.slug}`} className={styles.viewProject}>
-            View project &rarr;
-          </Link>
+          <TransitionLink href={`/projects/${active.slug}`} className={styles.viewProject}>
+            {t.home.viewProject} &rarr;
+          </TransitionLink>
         </div>
 
-        <nav className={styles.list} aria-label="Project list" ref={listRef}>
+        <nav className={styles.list} aria-label={t.nav.projectList} ref={listRef}>
           <span className={styles.travelDot} ref={travelDotRef} />
           {items.map((item, index) => (
             <button

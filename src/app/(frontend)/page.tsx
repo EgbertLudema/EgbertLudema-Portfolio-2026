@@ -3,23 +3,32 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import ExperienceLoader from '@/components/experience/ExperienceLoader'
 import type { ExperienceItem } from '@/components/experience/items'
+import { getLocale } from '@/lib/getLocale'
 
 export const revalidate = 0
 
 export default async function HomePage() {
   const payload = await getPayload({ config })
+  const locale = await getLocale()
 
   const { docs } = await payload.find({
     collection: 'projects',
     sort: 'order',
     depth: 1,
     limit: 100,
+    locale,
   })
 
   const items: ExperienceItem[] = docs.map((doc) => {
     const image = typeof doc.image === 'object' && doc.image ? doc.image : null
     const model = typeof doc.model === 'object' && doc.model ? doc.model : null
+    const homeScreenImage =
+      typeof doc.homeScreenImage === 'object' && doc.homeScreenImage ? doc.homeScreenImage : null
     const aspect = image?.width && image?.height ? image.width / image.height : undefined
+    const screenAspect =
+      homeScreenImage?.width && homeScreenImage?.height
+        ? homeScreenImage.width / homeScreenImage.height
+        : undefined
 
     return {
       id: doc.slug || String(doc.id),
@@ -33,8 +42,10 @@ export default async function HomePage() {
       modelPath: model?.url ?? undefined,
       imagePath: image?.url ?? undefined,
       imageAspect: aspect,
+      screenImagePath: homeScreenImage?.url ?? undefined,
+      screenImageAspect: screenAspect,
     }
   })
 
-  return <ExperienceLoader items={items} />
+  return <ExperienceLoader items={items} locale={locale} />
 }

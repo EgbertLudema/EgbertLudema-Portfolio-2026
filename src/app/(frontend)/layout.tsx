@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import { Bricolage_Grotesque, Geist_Mono } from 'next/font/google'
 import React from 'react'
 
+import { getDictionary } from '@/lib/i18n'
+import { getLocale } from '@/lib/getLocale'
+import PageTransitionProvider from '@/components/PageTransition'
 import './globals.css'
 
 const mono = Geist_Mono({
@@ -21,15 +24,23 @@ const title = Bricolage_Grotesque({
   display: 'swap',
 })
 
-export const metadata: Metadata = {
-  title: 'Portfolio · Egbert Ludema',
-  description: 'Selected work, viewed in three dimensions.',
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale()
+  const t = getDictionary(locale)
+  return {
+    title: t.meta.title,
+    description: t.meta.description,
+  }
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale()
+
   return (
-    <html lang="en" className={`${mono.variable} ${title.variable}`}>
-      <body>{children}</body>
+    <html lang={locale} className={`${mono.variable} ${title.variable}`}>
+      <body>
+        <PageTransitionProvider>{children}</PageTransitionProvider>
+      </body>
     </html>
   )
 }

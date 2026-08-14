@@ -10,6 +10,9 @@ import { Media } from './collections/Media'
 import { Models } from './collections/Models'
 import { Projects } from './collections/Projects'
 import { Skills } from './collections/Skills'
+import { AboutPage } from './globals/AboutPage'
+import { ContactPage } from './globals/ContactPage'
+import { SkillsPage } from './globals/SkillsPage'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -22,6 +25,12 @@ export default buildConfig({
     },
   },
   collections: [Users, Media, Models, Projects, Skills],
+  globals: [AboutPage, ContactPage, SkillsPage],
+  localization: {
+    locales: ['en', 'nl'],
+    defaultLocale: 'en',
+    fallback: true,
+  },
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

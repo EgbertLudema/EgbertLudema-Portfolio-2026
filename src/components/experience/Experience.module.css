@@ -154,16 +154,27 @@
   align-items: center;
   gap: 6px;
   margin-top: 16px;
+  padding: 9px 18px;
+  border: 1px solid var(--color-accent-strong);
+  border-radius: 999px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-muted);
-  transition: color 0.2s ease;
+  color: var(--color-accent-strong);
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    gap 0.2s ease;
 }
 
 .viewProject:hover {
-  color: var(--color-accent-strong);
+  color: #ffffff;
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+  gap: 10px;
 }
 
 .list {

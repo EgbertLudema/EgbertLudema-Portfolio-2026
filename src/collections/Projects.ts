@@ -26,6 +26,7 @@ export const Projects: CollectionConfig = {
     {
       name: 'category',
       type: 'text',
+      localized: true,
       admin: {
         description: 'Small label shown above the title, e.g. "VISUAL STUDY · 2026"',
       },
@@ -34,15 +35,42 @@ export const Projects: CollectionConfig = {
       name: 'description',
       type: 'textarea',
       required: true,
+      localized: true,
       admin: {
         description: 'Short description shown under the title.',
       },
     },
     {
+      name: 'links',
+      type: 'array',
+      admin: {
+        description:
+          'External links shown on this project\'s detail page, e.g. "Visit site", "GitHub", "App Store".',
+      },
+      fields: [
+        {
+          name: 'label',
+          type: 'text',
+          required: true,
+          localized: true,
+          admin: {
+            description: 'Button text, e.g. "Visit site"',
+          },
+        },
+        {
+          name: 'url',
+          type: 'text',
+          required: true,
+        },
+      ],
+    },
+    {
       name: 'content',
       type: 'textarea',
+      localized: true,
       admin: {
-        description: "Full case-study write-up, shown on this project's detail page.",
+        description:
+          'Full case-study write-up, shown on this project\'s detail page. Blank lines separate paragraphs; a line starting with "- " becomes a bullet list. A line on its own starting with "## " becomes a heading — add " {purple}", " {orange}", " {yellow}", or " {green}" at the end to color it, e.g. "## Intensie {purple}", to mark which section of a model it belongs to. "### " makes a smaller, uncolored sub-heading.',
       },
     },
     {
@@ -70,6 +98,7 @@ export const Projects: CollectionConfig = {
         {
           name: 'caption',
           type: 'text',
+          localized: true,
         },
       ],
     },
@@ -85,6 +114,8 @@ export const Projects: CollectionConfig = {
         { label: 'Node Graph', value: 'nodegraph' },
         { label: 'Dice', value: 'dice' },
         { label: 'Crate', value: 'crate' },
+        { label: 'Smartphone', value: 'smartphone' },
+        { label: 'Monitor', value: 'monitor' },
       ],
     },
     {
@@ -106,8 +137,19 @@ export const Projects: CollectionConfig = {
           data?.type === 'figma' ||
           data?.type === 'nodegraph' ||
           data?.type === 'dice' ||
-          data?.type === 'crate',
+          data?.type === 'crate' ||
+          data?.type === 'smartphone' ||
+          data?.type === 'monitor',
         description: 'The .glb/.gltf file rendered in 3D for this project.',
+      },
+    },
+    {
+      name: 'homeScreenImage',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        condition: (data) => data?.type === 'smartphone' || data?.type === 'monitor',
+        description: 'Shown on the phone/monitor screen (its homescreen, or a site screenshot).',
       },
     },
     {
@@ -119,7 +161,7 @@ export const Projects: CollectionConfig = {
           defaultValue: '#f4f1ec',
           admin: {
             description:
-              'Gradient/accent color: used as a placeholder while no image is set, and as a subtle tint elsewhere.',
+              'Gradient/accent color: used as a placeholder while no image is set, as the mat/background behind an image card (Type = Image), and as a subtle tint elsewhere.',
             width: '50%',
           },
         },
@@ -150,6 +192,17 @@ export const Projects: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Skills used on this project, powering the future skills-hover section.',
+      },
+    },
+    {
+      name: 'relatedProjects',
+      type: 'relationship',
+      relationTo: 'projects',
+      hasMany: true,
+      admin: {
+        position: 'sidebar',
+        description:
+          'Other projects to cross-link on this project\'s page, e.g. a case study and the model/framework it applies. Add the link on both sides to cross-link them.',
       },
     },
   ],
