@@ -45,5 +45,28 @@ export const ContactPage: GlobalConfig = {
         description: 'Shown as a mailto: link.',
       },
     },
+    {
+      name: 'socials',
+      type: 'array',
+      label: 'Socials',
+      admin: {
+        description: 'Social links shown on the contact page, e.g. LinkedIn, GitHub, Instagram. Drag to reorder.',
+      },
+      fields: [
+        {
+          name: 'label',
+          type: 'text',
+          required: true,
+          admin: {
+            description: 'Platform name, e.g. "LinkedIn"',
+          },
+        },
+        {
+          name: 'url',
+          type: 'text',
+          required: true,
+        },
+      ],
+    },
   ],
 }

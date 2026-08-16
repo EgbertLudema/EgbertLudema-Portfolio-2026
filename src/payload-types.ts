@@ -235,9 +235,23 @@ export interface Project {
       }[]
     | null;
   /**
-   * Full case-study write-up, shown on this project's detail page. Blank lines separate paragraphs; a line starting with "- " becomes a bullet list. A line on its own starting with "## " becomes a heading — add " {purple}", " {orange}", " {yellow}", or " {green}" at the end to color it, e.g. "## Intensie {purple}", to mark which section of a model it belongs to. "### " makes a smaller, uncolored sub-heading.
+   * Full case-study write-up, shown on this project's detail page. To color a heading (e.g. to mark which section of a model it belongs to), select its text and use "Text Color" in the toolbar.
    */
-  content?: string | null;
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   /**
    * Large image at the top of the project detail page.
    */
@@ -561,6 +575,66 @@ export interface AboutPage {
    * Optional longer write-up, shown below the intro. Blank lines start a new paragraph; lines starting with "- " become a bullet list.
    */
   content?: string | null;
+  /**
+   * Schools/programmes, shown as a list on the About page. Drag to reorder.
+   */
+  education?:
+    | {
+        /**
+         * School name, e.g. "NHL Stenden Leeuwarden"
+         */
+        institution: string;
+        /**
+         * Programme/degree, e.g. "Communication & Multimedia Design"
+         */
+        title: string;
+        /**
+         * e.g. "2024 - present"
+         */
+        period?: string | null;
+        /**
+         * Current / ongoing — highlights this entry's dot on the About page.
+         */
+        current?: boolean | null;
+        /**
+         * Skills linked to this programme, shown as chips beneath it.
+         */
+        skills?: (number | Skill)[] | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Jobs/roles, shown as a list on the About page. Drag to reorder.
+   */
+  experience?:
+    | {
+        /**
+         * Company name, e.g. "EL-Websolutions"
+         */
+        company: string;
+        /**
+         * Job title, e.g. "Freelance Web Developer"
+         */
+        role: string;
+        /**
+         * e.g. "Feb 2024 - present"
+         */
+        period?: string | null;
+        /**
+         * Optional short line about the role.
+         */
+        description?: string | null;
+        /**
+         * Current / ongoing — highlights this entry's dot on the About page.
+         */
+        current?: boolean | null;
+        /**
+         * Skills used in this role, shown as chips beneath it.
+         */
+        skills?: (number | Skill)[] | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -585,11 +659,24 @@ export interface ContactPage {
    * Shown as a mailto: link.
    */
   email: string;
+  /**
+   * Social links shown on the contact page, e.g. LinkedIn, GitHub, Instagram. Drag to reorder.
+   */
+  socials?:
+    | {
+        /**
+         * Platform name, e.g. "LinkedIn"
+         */
+        label: string;
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
 /**
- * Header content for the /skills page. The skill list itself comes from the Skills collection.
+ * Header content for the /projects page. The project list itself comes from the Projects collection, filterable by the Skills collection.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "skills-page".
@@ -597,7 +684,7 @@ export interface ContactPage {
 export interface SkillsPage {
   id: number;
   /**
-   * Small label shown above the title, e.g. "SKILLS · 2026"
+   * Small label shown above the title, e.g. "PROJECTS · 2026"
    */
   category?: string | null;
   title: string;
@@ -617,6 +704,27 @@ export interface AboutPageSelect<T extends boolean = true> {
   title?: T;
   description?: T;
   content?: T;
+  education?:
+    | T
+    | {
+        institution?: T;
+        title?: T;
+        period?: T;
+        current?: T;
+        skills?: T;
+        id?: T;
+      };
+  experience?:
+    | T
+    | {
+        company?: T;
+        role?: T;
+        period?: T;
+        description?: T;
+        current?: T;
+        skills?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -630,6 +738,13 @@ export interface ContactPageSelect<T extends boolean = true> {
   title?: T;
   description?: T;
   email?: T;
+  socials?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

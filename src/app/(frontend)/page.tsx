@@ -11,13 +11,22 @@ export default async function HomePage() {
   const payload = await getPayload({ config })
   const locale = await getLocale()
 
-  const { docs } = await payload.find({
-    collection: 'projects',
-    sort: 'order',
-    depth: 1,
-    limit: 100,
-    locale,
-  })
+  const [{ docs }, contactPage] = await Promise.all([
+    payload.find({
+      collection: 'projects',
+      sort: 'order',
+      depth: 1,
+      limit: 100,
+      locale,
+    }),
+    payload.findGlobal({ slug: 'contact-page', locale }),
+  ])
+
+  const socials = (contactPage.socials ?? [])
+    .filter((social): social is { label: string; url: string; id?: string | null } =>
+      Boolean(social?.label && social?.url),
+    )
+    .map((social) => ({ id: social.id ?? social.label, label: social.label, url: social.url }))
 
   const items: ExperienceItem[] = docs.map((doc) => {
     const image = typeof doc.image === 'object' && doc.image ? doc.image : null
@@ -47,5 +56,11 @@ export default async function HomePage() {
     }
   })
 
-  return <ExperienceLoader items={items} locale={locale} />
+  return (
+    <ExperienceLoader
+      items={items}
+      locale={locale}
+      contact={{ email: contactPage.email, socials }}
+    />
+  )
 }

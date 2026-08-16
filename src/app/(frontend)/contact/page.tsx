@@ -2,10 +2,8 @@ import type { Metadata } from 'next'
 import { getPayload } from 'payload'
 
 import config from '@payload-config'
-import { getDictionary } from '@/lib/i18n'
 import { getLocale } from '@/lib/getLocale'
-import LanguageSwitch from '@/components/LanguageSwitch'
-import TransitionLink from '@/components/TransitionLink'
+import PageNav from '@/components/PageNav'
 import styles from '../PageShell.module.css'
 
 export const revalidate = 0
@@ -19,25 +17,22 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale()
   const contact = await getContactPage(locale)
   return {
-    title: `${contact.title} · Egbert Ludema`,
+    title: `Egbert Ludema · ${contact.title}`,
     description: contact.description,
   }
 }
 
 export default async function ContactPage() {
   const locale = await getLocale()
-  const t = getDictionary(locale)
   const contact = await getContactPage(locale)
+  const socials = (contact.socials ?? []).filter(
+    (social): social is { label: string; url: string; id?: string | null } => Boolean(social?.label && social?.url),
+  )
 
   return (
     <main className={styles.stage}>
+      <PageNav locale={locale} />
       <article className={styles.article}>
-        <div className={styles.topRow}>
-          <TransitionLink href="/" className={styles.back}>
-            &larr; {t.common.backToPortfolio}
-          </TransitionLink>
-          <LanguageSwitch locale={locale} />
-        </div>
         <header className={styles.header}>
           {contact.category ? <p className={styles.category}>{contact.category}</p> : null}
           <h1 className={styles.title}>{contact.title}</h1>
@@ -45,6 +40,21 @@ export default async function ContactPage() {
           <a className={styles.contactLink} href={`mailto:${contact.email}`}>
             {contact.email}
           </a>
+          {socials.length > 0 ? (
+            <div className={styles.linkRow}>
+              {socials.map((social, index) => (
+                <a
+                  key={social.id ?? index}
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.linkPill}
+                >
+                  {social.label} ↗
+                </a>
+              ))}
+            </div>
+          ) : null}
         </header>
       </article>
     </main>

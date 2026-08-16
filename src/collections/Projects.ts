@@ -1,5 +1,17 @@
 import type { CollectionConfig } from 'payload'
 import { slugField } from 'payload'
+import { lexicalEditor, TextStateFeature } from '@payloadcms/richtext-lexical'
+
+/** Selecting heading text and applying one of these ("Text Color" in the
+ * toolbar) marks which section of a model/framework it belongs to, e.g. the
+ * four categories of the Financieel gedrag model diagram — mirrors the
+ * dot colors in PageShell.module.css's .headingPurple/.headingOrange/etc. */
+const HEADING_COLOR_STATE = {
+  purple: { label: 'Purple', css: { color: '#8f7cc7' } },
+  orange: { label: 'Orange', css: { color: '#c07a3e' } },
+  yellow: { label: 'Yellow', css: { color: '#b3902a' } },
+  green: { label: 'Green', css: { color: '#4c9a67' } },
+}
 
 export const Projects: CollectionConfig = {
   slug: 'projects',
@@ -66,11 +78,17 @@ export const Projects: CollectionConfig = {
     },
     {
       name: 'content',
-      type: 'textarea',
+      type: 'richText',
       localized: true,
+      editor: lexicalEditor({
+        features: ({ defaultFeatures }) => [
+          ...defaultFeatures,
+          TextStateFeature({ state: { headingColor: HEADING_COLOR_STATE } }),
+        ],
+      }),
       admin: {
         description:
-          'Full case-study write-up, shown on this project\'s detail page. Blank lines separate paragraphs; a line starting with "- " becomes a bullet list. A line on its own starting with "## " becomes a heading — add " {purple}", " {orange}", " {yellow}", or " {green}" at the end to color it, e.g. "## Intensie {purple}", to mark which section of a model it belongs to. "### " makes a smaller, uncolored sub-heading.',
+          'Full case-study write-up, shown on this project\'s detail page. To color a heading (e.g. to mark which section of a model it belongs to), select its text and use "Text Color" in the toolbar.',
       },
     },
     {

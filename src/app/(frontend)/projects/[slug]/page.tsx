@@ -1,14 +1,15 @@
 import { getPayload } from 'payload'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { RichText } from '@payloadcms/richtext-lexical/react'
 
 import config from '@payload-config'
 import type { Media, Project, Skill } from '@/payload-types'
 import { getDictionary } from '@/lib/i18n'
 import { getLocale } from '@/lib/getLocale'
 import type { Locale } from '@/lib/locale'
-import { renderContent } from '@/lib/renderContent'
-import LanguageSwitch from '@/components/LanguageSwitch'
+import { projectContentConverters } from '@/lib/projectRichTextConverters'
+import PageNav from '@/components/PageNav'
 import TransitionLink from '@/components/TransitionLink'
 import styles from '../../PageShell.module.css'
 import Gallery from './Gallery'
@@ -35,9 +36,9 @@ export async function generateMetadata({
   const { slug } = await params
   const locale = await getLocale()
   const project = await getProject(slug, locale)
-  if (!project) return { title: 'Project not found · Egbert Ludema' }
+  if (!project) return { title: 'Egbert Ludema · Project not found' }
   return {
-    title: `${project.title} · Egbert Ludema`,
+    title: `Egbert Ludema · ${project.title}`,
     description: project.description,
   }
 }
@@ -65,14 +66,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
 
   return (
     <main className={styles.stage}>
+      <PageNav locale={locale} />
       <article className={styles.article}>
-        <div className={styles.topRow}>
-          <TransitionLink href="/" className={styles.back}>
-            &larr; {t.common.backToPortfolio}
-          </TransitionLink>
-          <LanguageSwitch locale={locale} />
-        </div>
-
         <header className={styles.header}>
           {project.category ? <p className={styles.category}>{project.category}</p> : null}
           <h1 className={styles.title}>{project.title}</h1>
@@ -99,7 +94,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         ) : null}
 
         {project.content ? (
-          <div className={styles.body}>{renderContent(project.content)}</div>
+          <div className={styles.body}>
+            <RichText data={project.content} converters={projectContentConverters} disableContainer />
+          </div>
         ) : null}
 
         {gallery.length > 0 ? (
@@ -143,7 +140,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             <ul className={styles.skillList}>
               {skills.map((skill) => (
                 <li key={skill.id}>
-                  <TransitionLink href={`/skills?skill=${skill.slug}`} className={styles.skillChip}>
+                  <TransitionLink href={`/projects?skill=${skill.slug}`} className={styles.skillChip}>
                     {skill.title}
                   </TransitionLink>
                 </li>

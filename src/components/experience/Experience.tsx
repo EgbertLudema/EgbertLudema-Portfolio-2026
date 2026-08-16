@@ -78,8 +78,22 @@ const MAX_CANVAS_RECOVERIES = 5
 // doesn't visibly outrun a mostly-vertical one.
 const DOT_SPEED = 550
 
-export default function Experience({ items, locale }: { items: ExperienceItem[]; locale: Locale }) {
+export type ContactInfo = {
+  email: string
+  socials: { id: string; label: string; url: string }[]
+}
+
+export default function Experience({
+  items,
+  locale,
+  contact,
+}: {
+  items: ExperienceItem[]
+  locale: Locale
+  contact: ContactInfo
+}) {
   const t = getDictionary(locale)
+  const year = new Date().getFullYear()
   const debugStore = useCreateStore()
   const [activeIndex, setActiveIndex] = useState(0)
   const [canvasKey, setCanvasKey] = useState(0)
@@ -312,10 +326,7 @@ export default function Experience({ items, locale }: { items: ExperienceItem[];
             <TransitionLink href="/about" className={styles.topNavLink}>
               {t.nav.about}
             </TransitionLink>
-            <TransitionLink href="/skills" className={styles.topNavLink}>
-              {t.nav.skills}
-            </TransitionLink>
-            <TransitionLink href="/" className={styles.topNavLink}>
+            <TransitionLink href="/projects" className={styles.topNavLink}>
               {t.nav.projects}
             </TransitionLink>
             <TransitionLink href="/contact" className={styles.topNavLink}>
@@ -360,6 +371,28 @@ export default function Experience({ items, locale }: { items: ExperienceItem[];
             </button>
           ))}
         </nav>
+
+        <footer className={styles.bottomBar}>
+          <div className={styles.bottomBarLinks}>
+            {contact.email ? (
+              <a href={`mailto:${contact.email}`} className={styles.bottomBarLink}>
+                Mail
+              </a>
+            ) : null}
+            {contact.socials.map((social) => (
+              <a
+                key={social.id}
+                href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.bottomBarLink}
+              >
+                {social.label}
+              </a>
+            ))}
+          </div>
+          <span className={styles.bottomBarCopyright}>&copy; {year} Egbert Ludema</span>
+        </footer>
       </main>
     </DebugStoreProvider>
   )

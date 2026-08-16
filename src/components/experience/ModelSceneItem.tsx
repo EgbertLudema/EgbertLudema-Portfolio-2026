@@ -103,6 +103,22 @@ const VAULT_MODEL_TUNING: ModelTuning = {
   ambientSway: true,
 }
 
+// Financieel gedrag model-only overrides, tuned by eye the same way as the
+// vault above: this diagram model is exported flat and needs a near-90°
+// rotation to stand up facing the camera, plus a larger targetSize since
+// its geometry (thin edges/labels) reads small otherwise.
+const FINANCIEEL_GEDRAG_MODEL_TUNING: ModelTuning = {
+  ...DEFAULT_MODEL_TUNING,
+  targetSize: 1.66,
+  verticalOffset: 0,
+  rotationX: 1.53,
+  rotationY: 0.0007963267948964958,
+  rotationZ: -1.98,
+  ambientSway: false,
+  outerRotationX: -0.18,
+  outerPositionY: -0.08,
+}
+
 // Box3.setFromObject(scene) measures in world space, which is contaminated
 // by outerRef's large fixed base rotation (~-126° yaw) once `scene` is
 // mounted under it. This is fine for the vault (its offsets were tuned by eye
@@ -161,7 +177,15 @@ export default function VaultSceneModel({
   // pick which preset seeds this instance's sliders: the vault keeps its
   // door/handle/dial rig regardless.
   const isVault = useMemo(() => Boolean(scene.getObjectByName('VaultDoor')), [scene])
-  const defaults = isVault ? VAULT_MODEL_TUNING : DEFAULT_MODEL_TUNING
+  // The diagram model has no equivalent marker mesh to detect on, so it's
+  // matched on its asset filename instead (stable regardless of the
+  // project's CMS-editable title, unlike matching on `label`).
+  const isFinancieelGedragModel = useMemo(() => modelUrl.includes('financieel_gedrag'), [modelUrl])
+  const defaults = isVault
+    ? VAULT_MODEL_TUNING
+    : isFinancieelGedragModel
+      ? FINANCIEEL_GEDRAG_MODEL_TUNING
+      : DEFAULT_MODEL_TUNING
 
   const tuning = useControls(
     label,
@@ -180,6 +204,7 @@ export default function VaultSceneModel({
 
   const outerRef = useRef<THREE.Group>(null)
   const modelWrapRef = useRef<THREE.Group>(null)
+  const hitAreaRef = useRef<THREE.Mesh>(null)
 
   const rigRef = useRef<VaultRig>({
     door: null,
@@ -206,6 +231,21 @@ export default function VaultSceneModel({
   const memoryTextures = useMemo(() => heroMemoryCards.map(createMemoryTexture), [])
 
   useEffect(() => {
+    // Some exported glbs (e.g. Blender's default "Sun"/camera export) embed
+    // their own KHR_lights_punctual lights. <primitive object={scene}/>
+    // mounts the whole GLTF scene graph directly into this shared Canvas's
+    // scene, so an embedded light isn't scoped to this one model — it lights
+    // everything else in the scene too, blowing the whole page out white
+    // through ACES tone mapping. Scene.tsx already owns the only lighting
+    // rig this app wants, so strip any embedded lights before anything else
+    // measures or mounts this model. (Collected first, then removed: mutating
+    // the tree mid-traverse would skip siblings.)
+    const embeddedLights: THREE.Object3D[] = []
+    scene.traverse((child) => {
+      if ((child as THREE.Light).isLight) embeddedLights.push(child)
+    })
+    embeddedLights.forEach((light) => light.parent?.remove(light))
+
     let door: THREE.Object3D | null = null
     let handleMesh: THREE.Object3D | null = null
     let numbersMesh: THREE.Object3D | null = null
@@ -225,6 +265,19 @@ export default function VaultSceneModel({
     const size = box.getSize(new THREE.Vector3())
     const maxDimension = Math.max(size.x, size.y, size.z) || 1
     const modelScale = tuning.targetSize / maxDimension
+
+    // A sparse model (thin edges/labels with lots of empty space between
+    // them, e.g. the diagram model) is only clickable exactly on its
+    // geometry otherwise, since onClick relies on raycasting against actual
+    // meshes. This invisible sphere sits alongside the model, sized and
+    // centered from the same bounding-box measurement above, so the whole
+    // model's footprint is clickable — a sphere rather than a flat circle so
+    // it still reads as a full hit area from any camera angle even after a
+    // model's own rotation tuning turns it edge-on.
+    if (hitAreaRef.current) {
+      hitAreaRef.current.position.copy(center)
+      hitAreaRef.current.scale.setScalar(Math.max(maxDimension / 2, 0.05))
+    }
 
     if (modelWrapRef.current) {
       modelWrapRef.current.scale.setScalar(modelScale)
@@ -512,6 +565,10 @@ export default function VaultSceneModel({
       <group ref={outerRef} rotation={[0.03, vaultBaseRotationY, 0]} position={[0, -0.08, 0]}>
         <group ref={modelWrapRef}>
           <primitive object={scene} />
+          <mesh ref={hitAreaRef}>
+            <sphereGeometry args={[1, 12, 12]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
         </group>
         {heroMemoryCards.map((_, index) => (
           <mesh

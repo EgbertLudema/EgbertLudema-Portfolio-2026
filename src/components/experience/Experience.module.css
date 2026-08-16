@@ -226,6 +226,47 @@
   font-weight: 540;
 }
 
+.bottomBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 40px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.bottomBarLinks {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.bottomBarLink {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  transition: color 0.2s ease;
+}
+
+.bottomBarLink:hover {
+  color: var(--color-ink-soft);
+}
+
+.bottomBarCopyright {
+  pointer-events: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
+
 @keyframes riseIn {
   from {
     opacity: 0;
@@ -252,6 +293,10 @@
   }
 
   .topNav {
+    display: none;
+  }
+
+  .bottomBar {
     display: none;
   }
 

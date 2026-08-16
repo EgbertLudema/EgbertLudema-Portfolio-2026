@@ -1,10 +1,14 @@
 import type { GlobalConfig } from 'payload'
 
+/** Backs the /projects page (filterable project list). Kept under its
+ * original 'skills-page' slug, from when this content lived at /skills,
+ * to avoid a Postgres table rename/migration — the route moved, this
+ * global's slug intentionally didn't. */
 export const SkillsPage: GlobalConfig = {
   slug: 'skills-page',
-  label: 'Skills Page',
+  label: 'Projects Page',
   admin: {
-    description: 'Header content for the /skills page. The skill list itself comes from the Skills collection.',
+    description: 'Header content for the /projects page. The project list itself comes from the Projects collection, filterable by the Skills collection.',
   },
   access: {
     read: () => true,
@@ -14,9 +18,9 @@ export const SkillsPage: GlobalConfig = {
       name: 'category',
       type: 'text',
       localized: true,
-      defaultValue: 'SKILLS · 2026',
+      defaultValue: 'PROJECTS · 2026',
       admin: {
-        description: 'Small label shown above the title, e.g. "SKILLS · 2026"',
+        description: 'Small label shown above the title, e.g. "PROJECTS · 2026"',
       },
     },
     {
@@ -24,15 +28,14 @@ export const SkillsPage: GlobalConfig = {
       type: 'text',
       required: true,
       localized: true,
-      defaultValue: 'Skills',
+      defaultValue: 'Projects',
     },
     {
       name: 'description',
       type: 'textarea',
       required: true,
       localized: true,
-      defaultValue:
-        "Every skill used across my projects. Hovering one will soon show which projects it's linked to.",
+      defaultValue: 'Everything I\'ve built, filterable by skill.',
       admin: {
         description: 'Short intro shown under the title.',
       },

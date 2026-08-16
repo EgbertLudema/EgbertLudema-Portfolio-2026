@@ -16,6 +16,9 @@ export type FilterableProject = {
   slug: string
   title: string
   category: string
+  heroImage: { url: string; alt: string } | null
+  accentColorA: string
+  accentColorB: string
   skillSlugs: string[]
 }
 
@@ -24,7 +27,7 @@ export type FilterableProject = {
  * list below. Filtering is a same-page state change, so it goes through
  * plain client-side navigation rather than `TransitionLink`'s bubble — the
  * bubble is reserved for actually leaving the page. */
-export default function SkillsFilter({
+export default function ProjectsFilter({
   skills,
   projects,
   noSkillsAdded,
@@ -50,7 +53,7 @@ export default function SkillsFilter({
       params.delete('skill')
     }
     const query = params.toString()
-    router.replace(query ? `/skills?${query}` : '/skills', { scroll: false })
+    router.replace(query ? `/projects?${query}` : '/projects', { scroll: false })
   }
 
   const filteredProjects = active ? projects.filter((project) => project.skillSlugs.includes(active)) : projects
@@ -79,17 +82,30 @@ export default function SkillsFilter({
       <section className={styles.projectsSection}>
         <p className={styles.sectionLabel}>{projectsLabel}</p>
         {filteredProjects.length > 0 ? (
-          <div className={styles.relatedList}>
+          <div className={styles.projectGrid}>
             {filteredProjects.map((project) => (
-              <TransitionLink
-                key={project.id}
-                href={`/projects/${project.slug}`}
-                className={styles.relatedCard}
-              >
-                {project.category ? (
-                  <span className={styles.relatedCategory}>{project.category}</span>
-                ) : null}
-                <span className={styles.relatedTitle}>{project.title} &rarr;</span>
+              <TransitionLink key={project.id} href={`/projects/${project.slug}`} className={styles.projectCard}>
+                <div
+                  className={styles.projectCardMedia}
+                  style={{
+                    background: `linear-gradient(135deg, ${project.accentColorA}, ${project.accentColorB})`,
+                  }}
+                >
+                  {project.heroImage ? (
+                    <img
+                      src={project.heroImage.url}
+                      alt={project.heroImage.alt}
+                      className={styles.projectCardImage}
+                      loading="lazy"
+                    />
+                  ) : null}
+                </div>
+                <div className={styles.projectCardBody}>
+                  {project.category ? (
+                    <span className={styles.relatedCategory}>{project.category}</span>
+                  ) : null}
+                  <span className={styles.projectCardTitle}>{project.title} &rarr;</span>
+                </div>
               </TransitionLink>
             ))}
           </div>

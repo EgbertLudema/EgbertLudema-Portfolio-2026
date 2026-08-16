@@ -6,13 +6,13 @@ import type { Locale } from './locale'
 export const dictionaries = {
   en: {
     meta: {
-      title: 'Portfolio · Egbert Ludema',
+      title: 'Egbert Ludema · Portfolio',
       description: 'Selected work, viewed in three dimensions.',
     },
     nav: {
-      mark: 'portfolio',
+      mark: 'Egbert Ludema',
+      home: 'Home',
       about: 'About me',
-      skills: 'Skills',
       projects: 'Projects',
       contact: 'Contact',
       siteNavigation: 'Site navigation',
@@ -24,8 +24,11 @@ export const dictionaries = {
       noProjects: 'No projects yet. Add some in the Payload admin.',
       webglError: 'The 3D view keeps crashing on this device. Refresh to try again.',
     },
+    about: {
+      education: 'Education',
+      experience: 'Experience',
+    },
     common: {
-      backToPortfolio: 'Back to portfolio',
       gallery: 'Gallery',
       skills: 'Skills',
       related: 'Related',
@@ -47,13 +50,13 @@ export const dictionaries = {
   },
   nl: {
     meta: {
-      title: 'Portfolio · Egbert Ludema',
+      title: 'Egbert Ludema · Portfolio',
       description: 'Uitgelicht werk, bekeken in drie dimensies.',
     },
     nav: {
-      mark: 'portfolio',
+      mark: 'Egbert Ludema',
+      home: 'Home',
       about: 'Over mij',
-      skills: 'Vaardigheden',
       projects: 'Projecten',
       contact: 'Contact',
       siteNavigation: 'Sitenavigatie',
@@ -65,8 +68,11 @@ export const dictionaries = {
       noProjects: 'Nog geen projecten. Voeg ze toe in het Payload admin.',
       webglError: 'De 3D-weergave blijft crashen op dit apparaat. Ververs de pagina om het opnieuw te proberen.',
     },
+    about: {
+      education: 'Opleiding',
+      experience: 'Werkervaring',
+    },
     common: {
-      backToPortfolio: 'Terug naar portfolio',
       gallery: 'Galerij',
       skills: 'Vaardigheden',
       related: 'Gerelateerd',

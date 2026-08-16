@@ -46,5 +46,117 @@ export const AboutPage: GlobalConfig = {
           'Optional longer write-up, shown below the intro. Blank lines start a new paragraph; lines starting with "- " become a bullet list.',
       },
     },
+    {
+      name: 'education',
+      type: 'array',
+      label: 'Education',
+      admin: {
+        description: 'Schools/programmes, shown as a list on the About page. Drag to reorder.',
+      },
+      fields: [
+        {
+          name: 'institution',
+          type: 'text',
+          required: true,
+          admin: {
+            description: 'School name, e.g. "NHL Stenden Leeuwarden"',
+          },
+        },
+        {
+          name: 'title',
+          type: 'text',
+          required: true,
+          localized: true,
+          admin: {
+            description: 'Programme/degree, e.g. "Communication & Multimedia Design"',
+          },
+        },
+        {
+          name: 'period',
+          type: 'text',
+          localized: true,
+          admin: {
+            description: 'e.g. "2024 - present"',
+          },
+        },
+        {
+          name: 'current',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: 'Current / ongoing — highlights this entry\'s dot on the About page.',
+          },
+        },
+        {
+          name: 'skills',
+          type: 'relationship',
+          relationTo: 'skills',
+          hasMany: true,
+          admin: {
+            description: 'Skills linked to this programme, shown as chips beneath it.',
+          },
+        },
+      ],
+    },
+    {
+      name: 'experience',
+      type: 'array',
+      label: 'Work Experience',
+      admin: {
+        description: 'Jobs/roles, shown as a list on the About page. Drag to reorder.',
+      },
+      fields: [
+        {
+          name: 'company',
+          type: 'text',
+          required: true,
+          admin: {
+            description: 'Company name, e.g. "EL-Websolutions"',
+          },
+        },
+        {
+          name: 'role',
+          type: 'text',
+          required: true,
+          localized: true,
+          admin: {
+            description: 'Job title, e.g. "Freelance Web Developer"',
+          },
+        },
+        {
+          name: 'period',
+          type: 'text',
+          localized: true,
+          admin: {
+            description: 'e.g. "Feb 2024 - present"',
+          },
+        },
+        {
+          name: 'description',
+          type: 'textarea',
+          localized: true,
+          admin: {
+            description: 'Optional short line about the role.',
+          },
+        },
+        {
+          name: 'current',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: 'Current / ongoing — highlights this entry\'s dot on the About page.',
+          },
+        },
+        {
+          name: 'skills',
+          type: 'relationship',
+          relationTo: 'skills',
+          hasMany: true,
+          admin: {
+            description: 'Skills used in this role, shown as chips beneath it.',
+          },
+        },
+      ],
+    },
   ],
 }

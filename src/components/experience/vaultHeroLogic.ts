@@ -39,7 +39,7 @@ export const heroMemoryCards = [
     title: 'Selected Work',
     lines: ['A few objects,', 'images and ideas', 'worth a second look.'],
   },
-  { kind: 'image' },
+  { kind: 'image', src: '/images/vault/2-youngadults-looking-at-memories_small.jpeg' },
   { kind: 'folder' },
   { kind: 'envelope' },
   {
@@ -47,7 +47,7 @@ export const heroMemoryCards = [
     title: 'Say hello',
     lines: ['Always open to', 'new work and', 'good conversation.'],
   },
-  { kind: 'image' },
+  { kind: 'image', src: '/images/vault/Photobook_table_livingroom_small.jpeg' },
 ] as const satisfies readonly HeroMemoryCard[]
 
 export const vaultBaseRotationY = -Math.PI / 1.55 - 0.18
