@@ -10,6 +10,7 @@ import { getLocale } from '@/lib/getLocale'
 import type { Locale } from '@/lib/locale'
 import { projectContentConverters } from '@/lib/projectRichTextConverters'
 import PageNav from '@/components/PageNav'
+import PageFooter from '@/components/PageFooter'
 import TransitionLink from '@/components/TransitionLink'
 import styles from '../../PageShell.module.css'
 import Gallery from './Gallery'
@@ -150,6 +151,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             <p className={styles.skillsEmpty}>{t.common.noSkillsLinked}</p>
           )}
         </section>
+
+        <PageFooter locale={locale} />
       </article>
     </main>
   )

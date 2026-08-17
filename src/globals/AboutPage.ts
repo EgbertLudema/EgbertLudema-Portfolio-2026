@@ -11,6 +11,14 @@ export const AboutPage: GlobalConfig = {
   },
   fields: [
     {
+      name: 'photo',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description: 'Portrait photo shown on the About page.',
+      },
+    },
+    {
       name: 'category',
       type: 'text',
       localized: true,
@@ -54,6 +62,14 @@ export const AboutPage: GlobalConfig = {
         description: 'Schools/programmes, shown as a list on the About page. Drag to reorder.',
       },
       fields: [
+        {
+          name: 'logo',
+          type: 'upload',
+          relationTo: 'media',
+          admin: {
+            description: 'School logo, shown next to the institution name.',
+          },
+        },
         {
           name: 'institution',
           type: 'text',
@@ -106,6 +122,14 @@ export const AboutPage: GlobalConfig = {
         description: 'Jobs/roles, shown as a list on the About page. Drag to reorder.',
       },
       fields: [
+        {
+          name: 'logo',
+          type: 'upload',
+          relationTo: 'media',
+          admin: {
+            description: 'Company logo, shown next to the company name.',
+          },
+        },
         {
           name: 'company',
           type: 'text',

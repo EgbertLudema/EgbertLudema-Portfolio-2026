@@ -17,6 +17,8 @@ export const dictionaries = {
       contact: 'Contact',
       siteNavigation: 'Site navigation',
       projectList: 'Project list',
+      openMenu: 'Open menu',
+      closeMenu: 'Close menu',
     },
     home: {
       scrollHint: 'scroll',
@@ -61,6 +63,8 @@ export const dictionaries = {
       contact: 'Contact',
       siteNavigation: 'Sitenavigatie',
       projectList: 'Projectenlijst',
+      openMenu: 'Menu openen',
+      closeMenu: 'Menu sluiten',
     },
     home: {
       scrollHint: 'scroll',

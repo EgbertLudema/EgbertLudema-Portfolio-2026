@@ -12,7 +12,7 @@ import Clock from './Clock'
 import { DebugStoreProvider, isDev } from './debugStore'
 import styles from './Experience.module.css'
 import type { ExperienceItem } from './items'
-import Scene from './Scene'
+import Scene, { DRAG_PIXELS_PER_CARD } from './Scene'
 
 const DEBUG_STORAGE_KEY = 'vault-debug-transform-values'
 
@@ -71,7 +71,6 @@ function DebugPanel({ store }: { store: ReturnType<typeof useCreateStore> }) {
 
 const NAV_LOCK_MS = 750
 const WHEEL_THRESHOLD = 45
-const SWIPE_THRESHOLD = 50
 const MAX_CANVAS_RECOVERIES = 5
 // Pixels per second the travel dot flies at, kept constant regardless of a
 // leg's direction so a mostly-horizontal hop (a big title-length jump)
@@ -98,9 +97,22 @@ export default function Experience({
   const [activeIndex, setActiveIndex] = useState(0)
   const [canvasKey, setCanvasKey] = useState(0)
   const [canvasGaveUp, setCanvasGaveUp] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [releaseTick, setReleaseTick] = useState(0)
+  const menuOpenRef = useRef(false)
+  const activeIndexRef = useRef(activeIndex)
   const lockRef = useRef(false)
   const wheelAccum = useRef(0)
-  const touchStartX = useRef<number | null>(null)
+  // Shared by touch (finger) and pointer (mouse/pen) drag — both feed the
+  // same live-follow + snap system, see Row's useFrame in Scene.tsx.
+  const dragStart = useRef<{ x: number; y: number } | null>(null)
+  // Positive = dragged toward "next" (finger/cursor moving left or up),
+  // whichever axis is currently dominant — lets the same gesture read as
+  // either a horizontal swipe or a vertical scroll, since both should
+  // navigate.
+  const dragForwardPx = useRef(0)
+  const isDraggingRef = useRef(false)
   const recoveryCountRef = useRef(0)
   const listRef = useRef<HTMLElement>(null)
   const travelDotRef = useRef<HTMLSpanElement>(null)
@@ -152,7 +164,16 @@ export default function Experience({
   )
 
   useEffect(() => {
+    menuOpenRef.current = menuOpen
+  }, [menuOpen])
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex
+  }, [activeIndex])
+
+  useEffect(() => {
     const onWheel = (event: WheelEvent) => {
+      if (menuOpenRef.current) return
       event.preventDefault()
       if (lockRef.current) return
       const delta = Math.abs(event.deltaY) > Math.abs(event.deltaX) ? event.deltaY : event.deltaX
@@ -164,34 +185,114 @@ export default function Experience({
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && menuOpenRef.current) {
+        setMenuOpen(false)
+        return
+      }
+      if (menuOpenRef.current) return
       if (event.key === 'ArrowRight' || event.key === 'ArrowDown') step(1)
       if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') step(-1)
     }
 
-    const onTouchStart = (event: TouchEvent) => {
-      touchStartX.current = event.touches[0]?.clientX ?? null
+    // Shared by touch and mouse/pen drag below, so both gestures live-follow
+    // and snap identically instead of mouse-drag being a silent, no-feedback
+    // "did it work?" threshold check.
+    const beginDrag = (x: number, y: number) => {
+      if (menuOpenRef.current) return
+      dragStart.current = { x, y }
+      dragForwardPx.current = 0
+      isDraggingRef.current = true
+      setDragging(true)
     }
 
-    const onTouchEnd = (event: TouchEvent) => {
-      if (touchStartX.current === null) return
-      const endX = event.changedTouches[0]?.clientX ?? touchStartX.current
-      const delta = touchStartX.current - endX
-      if (Math.abs(delta) > SWIPE_THRESHOLD) step(delta > 0 ? 1 : -1)
-      touchStartX.current = null
+    // Continuously tracked (not just start/end) so the row can live-follow
+    // the finger/cursor — see Row's useFrame in Scene.tsx. Picks whichever
+    // axis (horizontal swipe or vertical scroll) has moved further so far,
+    // so either gesture drives the same "forward" direction.
+    const updateDrag = (x: number, y: number) => {
+      if (menuOpenRef.current || !dragStart.current) return
+      const dx = dragStart.current.x - x
+      const dy = dragStart.current.y - y
+      dragForwardPx.current = Math.abs(dx) > Math.abs(dy) ? dx : dy
+    }
+
+    const endDrag = () => {
+      const wasDragging = dragStart.current !== null
+      dragStart.current = null
+      isDraggingRef.current = false
+      setDragging(false)
+      setReleaseTick((tick) => tick + 1)
+      if (menuOpenRef.current || !wasDragging) {
+        dragForwardPx.current = 0
+        return
+      }
+      const cardsMoved = Math.round(dragForwardPx.current / DRAG_PIXELS_PER_CARD)
+      dragForwardPx.current = 0
+      if (cardsMoved !== 0) {
+        const target = Math.max(0, Math.min(items.length - 1, activeIndexRef.current + cardsMoved))
+        jumpTo(target)
+      }
+    }
+
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0]
+      if (touch) beginDrag(touch.clientX, touch.clientY)
+    }
+
+    const onTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0]
+      if (touch) updateDrag(touch.clientX, touch.clientY)
+    }
+
+    const onTouchEnd = () => endDrag()
+
+    // Mouse/pen click-and-drag, as an alternative to the wheel — touch
+    // already gets its own gesture via the touch handlers above, so this
+    // skips `pointerType === 'touch'` rather than double-handling it.
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return
+      beginDrag(event.clientX, event.clientY)
+    }
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return
+      updateDrag(event.clientX, event.clientY)
+    }
+
+    const onPointerUp = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return
+      endDrag()
+    }
+
+    const onPointerCancel = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return
+      endDrag()
     }
 
     window.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: true })
     window.addEventListener('touchend', onTouchEnd)
+    window.addEventListener('touchcancel', onTouchEnd)
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerCancel)
 
     return () => {
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
       window.removeEventListener('touchend', onTouchEnd)
+      window.removeEventListener('touchcancel', onTouchEnd)
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerCancel)
     }
-  }, [step])
+  }, [step, jumpTo, items.length])
 
   // Position relative to the list container, not the viewport, so the dot's
   // left/top can be tweened directly without fighting the list's own layout.
@@ -288,7 +389,7 @@ export default function Experience({
   return (
     <DebugStoreProvider value={debugStore}>
       {isDev && <DebugPanel store={debugStore} />}
-      <main className={styles.stage}>
+      <main className={`${styles.stage} ${dragging ? styles.stageDragging : ''}`}>
         <div className={styles.canvasWrap}>
           {canvasGaveUp ? (
             <div
@@ -310,6 +411,9 @@ export default function Experience({
               activeIndex={activeIndex}
               onSelect={jumpTo}
               onContextLost={handleContextLost}
+              dragForwardPx={dragForwardPx}
+              isDragging={isDraggingRef}
+              releaseTick={releaseTick}
             />
           )}
         </div>
@@ -322,19 +426,95 @@ export default function Experience({
             </span>
             <Clock locale={locale} />
           </div>
-          <nav className={styles.topNav} aria-label={t.nav.siteNavigation}>
-            <TransitionLink href="/about" className={styles.topNavLink}>
-              {t.nav.about}
-            </TransitionLink>
-            <TransitionLink href="/projects" className={styles.topNavLink}>
-              {t.nav.projects}
-            </TransitionLink>
-            <TransitionLink href="/contact" className={styles.topNavLink}>
-              {t.nav.contact}
-            </TransitionLink>
-            <LanguageSwitch locale={locale} />
-          </nav>
+          <div className={styles.topBarRight}>
+            <nav className={styles.topNav} aria-label={t.nav.siteNavigation}>
+              <TransitionLink href="/about" className={styles.topNavLink}>
+                {t.nav.about}
+              </TransitionLink>
+              <TransitionLink href="/projects" className={styles.topNavLink}>
+                {t.nav.projects}
+              </TransitionLink>
+              <TransitionLink href="/contact" className={styles.topNavLink}>
+                {t.nav.contact}
+              </TransitionLink>
+              <LanguageSwitch locale={locale} />
+            </nav>
+            <button
+              type="button"
+              className={styles.menuToggle}
+              aria-expanded={menuOpen}
+              aria-label={menuOpen ? t.nav.closeMenu : t.nav.openMenu}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <span className={`${styles.menuToggleBars} ${menuOpen ? styles.menuToggleOpen : ''}`}>
+                <span />
+                <span />
+              </span>
+            </button>
+          </div>
         </header>
+
+        {menuOpen ? (
+          <div className={styles.menuBackdrop} onClick={() => setMenuOpen(false)}>
+            <div
+              className={styles.menuPanel}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t.nav.siteNavigation}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className={styles.menuHeader}>
+                <span className={styles.mark}>
+                  <span className={styles.markDot} />
+                  {t.nav.mark}
+                </span>
+                <button
+                  type="button"
+                  className={styles.menuClose}
+                  aria-label={t.nav.closeMenu}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <nav className={styles.menuNav} aria-label={t.nav.siteNavigation}>
+                <TransitionLink href="/about" className={styles.menuNavLink}>
+                  {t.nav.about}
+                </TransitionLink>
+                <TransitionLink href="/projects" className={styles.menuNavLink}>
+                  {t.nav.projects}
+                </TransitionLink>
+                <TransitionLink href="/contact" className={styles.menuNavLink}>
+                  {t.nav.contact}
+                </TransitionLink>
+              </nav>
+              <LanguageSwitch locale={locale} className={styles.menuLanguage} />
+
+              <div className={styles.menuFooter}>
+                <div className={styles.menuFooterLinks}>
+                  {contact.email ? (
+                    <a href={`mailto:${contact.email}`} className={styles.bottomBarLink}>
+                      Mail
+                    </a>
+                  ) : null}
+                  {contact.socials.map((social) => (
+                    <a
+                      key={social.id}
+                      href={social.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.bottomBarLink}
+                    >
+                      {social.label}
+                    </a>
+                  ))}
+                </div>
+                <span className={styles.bottomBarCopyright}>&copy; {year} Egbert Ludema</span>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className={styles.bottomLeft}>
           <span className={styles.index}>

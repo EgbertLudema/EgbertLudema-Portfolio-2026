@@ -7,6 +7,7 @@ import type { Media, Skill } from '@/payload-types'
 import { getDictionary } from '@/lib/i18n'
 import { getLocale } from '@/lib/getLocale'
 import PageNav from '@/components/PageNav'
+import PageFooter from '@/components/PageFooter'
 import styles from '../PageShell.module.css'
 import ProjectsFilter from './ProjectsFilter'
 
@@ -80,6 +81,8 @@ export default async function ProjectsPage() {
             noProjectsForSkill={t.common.noProjectsForSkill}
           />
         </Suspense>
+
+        <PageFooter locale={locale} />
       </article>
     </main>
   )

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, Geist_Mono } from 'next/font/google'
 import React from 'react'
 
@@ -23,6 +23,12 @@ const title = Bricolage_Grotesque({
   variable: '--font-title',
   display: 'swap',
 })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale()

@@ -76,7 +76,7 @@
 .lightboxCount {
   position: fixed;
   z-index: 2;
-  top: 26px;
+  top: max(26px, env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-mono);
@@ -89,8 +89,8 @@
 .lightboxClose {
   position: fixed;
   z-index: 2;
-  top: 20px;
-  right: 24px;
+  top: max(20px, env(safe-area-inset-top));
+  right: max(24px, env(safe-area-inset-right));
   font-family: var(--font-sans);
   font-size: 30px;
   line-height: 1;
@@ -132,11 +132,11 @@
 }
 
 .lightboxPrev {
-  left: 16px;
+  left: max(16px, env(safe-area-inset-left));
 }
 
 .lightboxNext {
-  right: 16px;
+  right: max(16px, env(safe-area-inset-right));
 }
 
 @media (max-width: 720px) {

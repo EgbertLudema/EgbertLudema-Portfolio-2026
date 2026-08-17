@@ -11,6 +11,14 @@ export const ContactPage: GlobalConfig = {
   },
   fields: [
     {
+      name: 'photo',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description: 'Portrait photo shown on the Contact page.',
+      },
+    },
+    {
       name: 'category',
       type: 'text',
       localized: true,

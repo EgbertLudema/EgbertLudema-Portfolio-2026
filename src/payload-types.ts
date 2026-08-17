@@ -563,6 +563,10 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface AboutPage {
   id: number;
   /**
+   * Portrait photo shown on the About page.
+   */
+  photo?: (number | null) | Media;
+  /**
    * Small label shown above the title, e.g. "ABOUT · 2026"
    */
   category?: string | null;
@@ -580,6 +584,10 @@ export interface AboutPage {
    */
   education?:
     | {
+        /**
+         * School logo, shown next to the institution name.
+         */
+        logo?: (number | null) | Media;
         /**
          * School name, e.g. "NHL Stenden Leeuwarden"
          */
@@ -608,6 +616,10 @@ export interface AboutPage {
    */
   experience?:
     | {
+        /**
+         * Company logo, shown next to the company name.
+         */
+        logo?: (number | null) | Media;
         /**
          * Company name, e.g. "EL-Websolutions"
          */
@@ -646,6 +658,10 @@ export interface AboutPage {
  */
 export interface ContactPage {
   id: number;
+  /**
+   * Portrait photo shown on the Contact page.
+   */
+  photo?: (number | null) | Media;
   /**
    * Small label shown above the title, e.g. "CONTACT · 2026"
    */
@@ -700,6 +716,7 @@ export interface SkillsPage {
  * via the `definition` "about-page_select".
  */
 export interface AboutPageSelect<T extends boolean = true> {
+  photo?: T;
   category?: T;
   title?: T;
   description?: T;
@@ -707,6 +724,7 @@ export interface AboutPageSelect<T extends boolean = true> {
   education?:
     | T
     | {
+        logo?: T;
         institution?: T;
         title?: T;
         period?: T;
@@ -717,6 +735,7 @@ export interface AboutPageSelect<T extends boolean = true> {
   experience?:
     | T
     | {
+        logo?: T;
         company?: T;
         role?: T;
         period?: T;
@@ -734,6 +753,7 @@ export interface AboutPageSelect<T extends boolean = true> {
  * via the `definition` "contact-page_select".
  */
 export interface ContactPageSelect<T extends boolean = true> {
+  photo?: T;
   category?: T;
   title?: T;
   description?: T;

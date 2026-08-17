@@ -1,11 +1,15 @@
 .stage {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
   overflow: hidden;
   background: var(--color-bg);
   touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.stageDragging {
+  cursor: grabbing;
 }
 
 .canvasWrap {
@@ -21,7 +25,9 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 30px 40px;
+  padding: max(30px, env(safe-area-inset-top)) max(40px, env(safe-area-inset-right)) 0
+    max(40px, env(safe-area-inset-left));
+  padding-bottom: 30px;
   z-index: 10;
   pointer-events: none;
 }
@@ -89,10 +95,159 @@
   color: var(--color-ink-soft);
 }
 
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.menuToggle {
+  display: none;
+  pointer-events: auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background: var(--color-bg);
+}
+
+.menuToggleBars {
+  position: relative;
+  width: 16px;
+  height: 11px;
+}
+
+.menuToggleBars span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-ink);
+  transition:
+    transform 0.25s ease,
+    opacity 0.2s ease;
+}
+
+.menuToggleBars span:first-child {
+  top: 0;
+}
+
+.menuToggleBars span:last-child {
+  bottom: 0;
+}
+
+.menuToggleOpen span:first-child {
+  transform: translateY(5px) rotate(45deg);
+}
+
+.menuToggleOpen span:last-child {
+  transform: translateY(-5px) rotate(-45deg);
+}
+
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  background: rgba(17, 17, 17, 0.4);
+  animation: fadeIn 0.2s ease;
+}
+
+.menuPanel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  touch-action: pan-y;
+  background: var(--color-bg);
+  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.menuHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+
+.menuClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  font-size: 20px;
+  color: var(--color-ink);
+}
+
+.menuNav {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.menuNavLink {
+  font-family: var(--font-title);
+  font-weight: 540;
+  font-size: 1.7rem;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.menuLanguage {
+  align-self: flex-start;
+}
+
+.menuFooter {
+  margin-top: auto;
+  padding-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-top: 1px solid var(--color-line);
+}
+
+.menuFooterLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .bottomLeft {
   position: absolute;
-  left: 40px;
-  bottom: 36px;
+  left: max(40px, env(safe-area-inset-left));
+  bottom: max(36px, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -179,8 +334,8 @@
 
 .list {
   position: absolute;
-  right: 40px;
-  bottom: 36px;
+  right: max(40px, env(safe-area-inset-right));
+  bottom: max(36px, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -234,7 +389,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 40px;
+  padding: 14px max(40px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom))
+    max(40px, env(safe-area-inset-left));
   z-index: 10;
   pointer-events: none;
 }
@@ -278,14 +434,41 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (min-width: 721px) and (max-width: 1024px) {
   .topBar {
-    padding: 20px 22px;
+    padding-left: max(28px, env(safe-area-inset-left));
+    padding-right: max(28px, env(safe-area-inset-right));
   }
 
   .bottomLeft {
-    left: 22px;
-    bottom: 22px;
+    left: max(28px, env(safe-area-inset-left));
+  }
+
+  .list {
+    right: max(28px, env(safe-area-inset-right));
+  }
+
+  .bottomBar {
+    padding-left: max(28px, env(safe-area-inset-left));
+    padding-right: max(28px, env(safe-area-inset-right));
+  }
+
+  .topNav {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 720px) {
+  .topBar {
+    padding-left: max(22px, env(safe-area-inset-left));
+    padding-right: max(22px, env(safe-area-inset-right));
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: 20px;
+  }
+
+  .bottomLeft {
+    left: max(22px, env(safe-area-inset-left));
+    bottom: max(22px, env(safe-area-inset-bottom));
   }
 
   .list {
@@ -296,15 +479,32 @@
     display: none;
   }
 
+  .menuToggle {
+    display: flex;
+  }
+
   .bottomBar {
     display: none;
   }
 
   .bottomCenter {
-    bottom: 84px;
+    bottom: 56px;
   }
 
   .title {
     font-size: clamp(2rem, 8vw, 2.6rem);
+  }
+
+  .description {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .menuNavLink {
+    font-size: 1.5rem;
   }
 }

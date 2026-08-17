@@ -8,7 +8,7 @@
 .article {
   max-width: 760px;
   margin: 0 auto;
-  padding: 40px 24px 140px;
+  padding: 40px 24px calc(140px + env(safe-area-inset-bottom));
 }
 
 .pageNav {
@@ -20,7 +20,8 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 30px 40px;
+  padding: max(30px, env(safe-area-inset-top)) max(40px, env(safe-area-inset-right)) 30px
+    max(40px, env(safe-area-inset-left));
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-line);
   box-shadow: 0 8px 24px rgba(17, 17, 17, 0);
@@ -138,6 +139,32 @@
 .header {
   margin-top: 40px;
   margin-bottom: 40px;
+}
+
+.headerWithPhoto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 28px;
+}
+
+.headerText {
+  /* flex-basis: 0 instead of the default auto — otherwise this column's
+     max-content width (the description's `max-width: 60ch` can exceed the
+     space actually left beside the photo) makes it wrap below the photo
+     instead of just shrinking to fit next to it. */
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.photo {
+  flex: none;
+  width: 220px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 1px solid var(--color-line);
+  background: var(--color-bg);
 }
 
 .category {
@@ -487,6 +514,28 @@
   padding-left: 26px;
 }
 
+.entryItemWithLogo {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.entryLogo {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--color-line);
+  background: var(--color-bg);
+  padding: 6px;
+}
+
+.entryBody {
+  flex: 1;
+  min-width: 0;
+}
+
 .entryItem::before {
   content: '';
   position: absolute;
@@ -582,6 +631,43 @@
   color: var(--color-muted);
 }
 
+.pageFooter {
+  margin-top: 64px;
+  padding-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--color-line);
+}
+
+.pageFooterLinks {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.pageFooterLink {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  transition: color 0.2s ease;
+}
+
+.pageFooterLink:hover {
+  color: var(--color-ink-soft);
+}
+
+.pageFooterCopyright {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
+
 .contactLink {
   display: inline-flex;
   align-items: center;
@@ -600,17 +686,45 @@
   color: var(--color-ink);
 }
 
+@media (min-width: 721px) and (max-width: 1024px) {
+  .pageNav {
+    padding-left: max(28px, env(safe-area-inset-left));
+    padding-right: max(28px, env(safe-area-inset-right));
+  }
+
+  .pageNavLinks {
+    gap: 20px;
+  }
+
+  .projectGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
   .article {
-    padding: 30px 20px 100px;
+    padding: 30px 20px calc(100px + env(safe-area-inset-bottom));
   }
 
   .pageNav {
-    padding: 20px 22px;
+    padding: max(20px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) 20px
+      max(22px, env(safe-area-inset-left));
     gap: 12px;
   }
 
   .pageNavLinks {
     gap: 18px;
+  }
+
+  .photo {
+    width: 160px;
+  }
+
+  .heading {
+    font-size: 1.2rem;
+  }
+
+  .title {
+    font-size: clamp(2rem, 8vw, 2.6rem);
   }
 }
