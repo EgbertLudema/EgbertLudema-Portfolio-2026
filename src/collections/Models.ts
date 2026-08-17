@@ -15,7 +15,13 @@ export const Models: CollectionConfig = {
   },
   upload: {
     staticDir: 'models',
-    mimeTypes: ['model/gltf-binary', 'model/gltf+json', 'application/octet-stream'],
+    mimeTypes: [
+      'model/gltf-binary',
+      'model/gltf+json',
+      'application/octet-stream',
+      '.glb',
+      '.gltf',
+    ],
   },
   fields: [
     {
