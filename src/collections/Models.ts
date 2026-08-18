@@ -15,16 +15,12 @@ export const Models: CollectionConfig = {
   },
   upload: {
     staticDir: 'models',
-    mimeTypes: [
-      'model/gltf-binary',
-      'model/gltf+json',
-      'application/octet-stream',
-      '.glb',
-      '.gltf',
-    ],
-    // Vercel Blob client uploads bypass the server, so Payload re-fetches the file to sniff its
-    // type. That re-fetch can miss (CDN propagation lag right after upload), and its extension
-    // fallback doesn't know .glb/.gltf, so it wrongly rejects real uploads as "text/plain".
+    // No `mimeTypes` allowlist: with Vercel Blob client uploads, Payload validates by
+    // re-fetching the file server-side to sniff its type, and separately via a hidden
+    // `mimeType` field validator against this same list. Both key off that re-fetch, which
+    // can come back empty (CDN propagation lag right after upload) or with a browser-guessed
+    // type .glb/.gltf isn't registered for, wrongly rejecting real uploads. Access control
+    // (admin-only) is the real gate here, not file-type sniffing.
     allowRestrictedFileTypes: true,
   },
   fields: [

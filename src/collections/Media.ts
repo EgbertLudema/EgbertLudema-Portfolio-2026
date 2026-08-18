@@ -14,10 +14,11 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
-    mimeTypes: ['image/*'],
-    // Vercel Blob client uploads bypass the server, so Payload re-fetches the file to sniff its
-    // type. That re-fetch can miss (CDN propagation lag right after upload), wrongly rejecting
-    // real uploads based on a bad extension-based guess.
+    // No `mimeTypes` allowlist: with Vercel Blob client uploads, Payload validates by
+    // re-fetching the file server-side to sniff its type, and separately via a hidden
+    // `mimeType` field validator against this same list. Both key off that re-fetch, which
+    // can come back empty (CDN propagation lag right after upload), wrongly rejecting real
+    // uploads. Access control (admin-only) is the real gate here, not file-type sniffing.
     allowRestrictedFileTypes: true,
     // sharp (wired up in payload.config.ts) downsizes anything larger than
     // this and re-encodes it as WebP on save, so a multi-MB phone photo

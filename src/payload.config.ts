@@ -54,6 +54,10 @@ export default buildConfig({
             },
             token: process.env.BLOB_READ_WRITE_TOKEN,
             clientUploads: true,
+            // Without this, re-uploading a file with a name already in the store (e.g. retrying
+            // a failed save) fails with "This blob already exists" since the adapter has no
+            // allowOverwrite option.
+            addRandomSuffix: true,
           }),
         ]
       : []),
