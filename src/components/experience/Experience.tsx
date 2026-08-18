@@ -474,7 +474,15 @@ export default function Experience({
                   aria-label={t.nav.closeMenu}
                   onClick={() => setMenuOpen(false)}
                 >
-                  &times;
+                  {/* Same two-bar icon as the header's hamburger toggle, just
+                      permanently in its rotated "X" state (this button only
+                      exists while the menu is already open) — keeps both
+                      close affordances visually consistent instead of one
+                      being a plain "&times;" glyph. */}
+                  <span className={`${styles.menuToggleBars} ${styles.menuToggleOpen}`}>
+                    <span />
+                    <span />
+                  </span>
                 </button>
               </div>
 
