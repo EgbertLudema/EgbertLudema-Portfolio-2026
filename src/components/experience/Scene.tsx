@@ -123,6 +123,12 @@ const MOBILE_DOLLY = 1.05
 // (title/button block now sits low, near the bottom edge) instead of the
 // card centring on the camera's desktop-tuned eye-line.
 const MOBILE_LOOKAT_Y_OFFSET = -0.35
+// The base camera position/fov above were tuned by eye against the old,
+// off-centre desktop framing (lookAt.x used to sit at 0.8, see Camera
+// tuning default). Recentring it left the active card reading small in
+// all the newly-symmetric empty space around it, so desktop now dollies
+// in closer than the reference formula alone would put it.
+const DESKTOP_ZOOM = 0.8
 
 function ResponsiveCamera({ camera }: { camera: CameraTuning }) {
   const { size } = useThree()
@@ -130,9 +136,7 @@ function ResponsiveCamera({ camera }: { camera: CameraTuning }) {
   const isMobile = aspect < MOBILE_ASPECT_THRESHOLD
   const dolly = isMobile
     ? MOBILE_DOLLY
-    : aspect < REFERENCE_ASPECT
-      ? Math.min(REFERENCE_ASPECT / aspect, MAX_DOLLY)
-      : 1
+    : (aspect < REFERENCE_ASPECT ? Math.min(REFERENCE_ASPECT / aspect, MAX_DOLLY) : 1) * DESKTOP_ZOOM
 
   const lookAt = new THREE.Vector3(
     isMobile ? 0 : camera.lookAtX,
