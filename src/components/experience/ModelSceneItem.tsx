@@ -17,6 +17,7 @@ import {
   getAcceleratedClosingOrbitDistance,
   getAcceleratedClosingOrbitDuration,
   getCombinationDialSpinAmount,
+  getDoorOpenAmount,
   getForwardAngleDistance,
   getOpenCardOrbitAngle,
   getOrbitPoint,
@@ -33,9 +34,7 @@ import {
   memoryVaultFrontExitPoint,
   smoothstep,
   vaultBaseRotationY,
-  vaultDoorOpenDuration,
   vaultDoorOpenRotationY,
-  vaultDoorOpenStartTime,
   vaultHandleSpinRadians,
   vaultHandleUnlockSpinDuration,
   vaultHandleUnlockSpinStartTime,
@@ -220,6 +219,11 @@ export default function VaultSceneModel({
   const closingStartRef = useRef<number | null>(null)
   const closingCardPlansRef = useRef<ClosingCardPlan[]>([])
   const closeCompleteTimeRef = useRef(0)
+  // The door's actual openAmount (0-1) at the instant closing was
+  // triggered — the close sequence eases from this value down to 0, not
+  // from an assumed 1, so navigating away before the door finished (or
+  // even started) opening doesn't snap it open first. See triggerClose.
+  const doorOpenAmountAtCloseRef = useRef(0)
 
   const pointerTiltRef = useRef({ x: 0, y: 0 })
   const currentTiltRef = useRef({ x: 0, y: 0 })
@@ -329,16 +333,23 @@ export default function VaultSceneModel({
     const globalOrbitSpin =
       Math.max(0, sequenceTime - memoryGlobalOrbitStartTime) * memorySettledOrbitSpeed
 
+    doorOpenAmountAtCloseRef.current = getDoorOpenAmount(sequenceTime)
+
     const cardCloseDistances = cardStatesRef.current.map((card, index) => {
       const startAngle = getOpenCardOrbitAngle(card, sequenceTime, globalOrbitSpin)
       const frontDistance = getForwardAngleDistance(startAngle, card.startAngle)
-      return { index, startAngle, frontDistance }
+      // Whether this card had actually popped out and become visible yet
+      // at the moment of interruption — mirrors the main useFrame's own
+      // `cardTime >= 0` visibility check below.
+      const visibleAtClose = sequenceTime - memoryPopStartTime - card.popDelay >= 0
+      return { index, startAngle, frontDistance, visibleAtClose }
     })
 
     closingCardPlansRef.current = cardCloseDistances.map((card, index) => ({
       startAngle: card.startAngle,
       frontDelay: getAcceleratedClosingOrbitDuration(card.frontDistance),
       flyInDuration: cardStatesRef.current[index].popDuration,
+      visibleAtClose: card.visibleAtClose,
     }))
     closeCompleteTimeRef.current = finiteOrFallback(
       Math.max(
@@ -424,18 +435,20 @@ export default function VaultSceneModel({
     let openAmount = 0
 
     if (closingElapsed !== null) {
+      // Eases from however open the door actually was the instant closing
+      // was triggered (doorOpenAmountAtCloseRef, captured in triggerClose)
+      // down to 0 — not from an assumed 1, so an interruption before the
+      // door finished (or even started) opening closes from its real state
+      // instead of snapping open first.
       openAmount =
-        1 -
-        smoothstep(
-          (closingElapsed - safeCloseCompleteTime - memoryCloseDoorDelay) / memoryCloseDoorDuration,
-        )
-    } else if (
-      sequenceTime >= vaultDoorOpenStartTime &&
-      sequenceTime < vaultDoorOpenStartTime + vaultDoorOpenDuration
-    ) {
-      openAmount = smoothstep((sequenceTime - vaultDoorOpenStartTime) / vaultDoorOpenDuration)
-    } else if (sequenceTime >= vaultDoorOpenStartTime + vaultDoorOpenDuration) {
-      openAmount = 1
+        doorOpenAmountAtCloseRef.current *
+        (1 -
+          smoothstep(
+            (closingElapsed - safeCloseCompleteTime - memoryCloseDoorDelay) /
+              memoryCloseDoorDuration,
+          ))
+    } else {
+      openAmount = getDoorOpenAmount(sequenceTime)
     }
 
     const safeOpenAmount = finiteOrFallback(openAmount, 1)
@@ -488,30 +501,42 @@ export default function VaultSceneModel({
       let orbitAngle = movingStartAngle
       let opacity = 0
 
-      if (closingElapsed !== null && closingPlan) {
-        const flyInTime = closingElapsed - closingPlan.frontDelay
+      if (closingElapsed !== null) {
+        // Once closing has started, never fall through to the open-sequence
+        // branches below: sequenceTime (and so cardTime) keeps advancing
+        // with real elapsed time throughout the close too, since only
+        // closingStartRef resets, not sequenceStartRef. Without this guard
+        // a card interrupted before it popped would see cardTime cross 0
+        // partway through the close and start popping out while the vault
+        // is shutting.
+        if (closingPlan && closingPlan.visibleAtClose) {
+          const flyInTime = closingElapsed - closingPlan.frontDelay
 
-        if (flyInTime < 0) {
-          orbitAngle = closingPlan.startAngle + getAcceleratedClosingOrbitDistance(closingElapsed)
-          const orbitPoint = getOrbitPoint(orbitAngle, card.radius, card.yOffset)
-          x = orbitPoint.x
-          y = orbitPoint.y
-          z = orbitPoint.z
-          opacity = 1
-        } else if (flyInTime < closingPlan.flyInDuration) {
-          orbitAngle =
-            closingPlan.startAngle +
-            getAcceleratedClosingOrbitDistance(
-              closingPlan.frontDelay + flyInTime * memoryClosingFlyInOrbitCarry,
-            )
-          const flyInProgress = smoothstep(flyInTime / closingPlan.flyInDuration)
-          const orbitPoint = getOrbitPoint(orbitAngle, card.radius, card.yOffset)
+          if (flyInTime < 0) {
+            orbitAngle = closingPlan.startAngle + getAcceleratedClosingOrbitDistance(closingElapsed)
+            const orbitPoint = getOrbitPoint(orbitAngle, card.radius, card.yOffset)
+            x = orbitPoint.x
+            y = orbitPoint.y
+            z = orbitPoint.z
+            opacity = 1
+          } else if (flyInTime < closingPlan.flyInDuration) {
+            orbitAngle =
+              closingPlan.startAngle +
+              getAcceleratedClosingOrbitDistance(
+                closingPlan.frontDelay + flyInTime * memoryClosingFlyInOrbitCarry,
+              )
+            const flyInProgress = smoothstep(flyInTime / closingPlan.flyInDuration)
+            const orbitPoint = getOrbitPoint(orbitAngle, card.radius, card.yOffset)
 
-          x = orbitPoint.x + (memoryVaultFrontExitPoint.x - orbitPoint.x) * flyInProgress
-          y = orbitPoint.y + (memoryVaultFrontExitPoint.y - orbitPoint.y) * flyInProgress
-          z = orbitPoint.z + (memoryVaultFrontExitPoint.z - orbitPoint.z) * flyInProgress
-          opacity = 1 - flyInProgress
+            x = orbitPoint.x + (memoryVaultFrontExitPoint.x - orbitPoint.x) * flyInProgress
+            y = orbitPoint.y + (memoryVaultFrontExitPoint.y - orbitPoint.y) * flyInProgress
+            z = orbitPoint.z + (memoryVaultFrontExitPoint.z - orbitPoint.z) * flyInProgress
+            opacity = 1 - flyInProgress
+          }
         }
+        // else: card never popped before the interruption, or has already
+        // finished flying in — stays at the default (invisible, at the
+        // vault's exit point) for the rest of the close.
       } else if (cardTime >= 0 && cardTime < card.popDuration) {
         const popProgress = easeOutBack(cardTime / card.popDuration)
         x =

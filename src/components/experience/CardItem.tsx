@@ -19,6 +19,10 @@ import type { ExperienceItem } from './items'
 import { useGradientTexture } from './useGradientTexture'
 import VaultSceneModel from './ModelSceneItem'
 
+function lerp(from: number, to: number, t: number) {
+  return from + (to - from) * t
+}
+
 const CARD_WIDTH = 0.65
 const CARD_HEIGHT = 0.85
 const CARD_ASPECT = CARD_WIDTH / CARD_HEIGHT
@@ -129,10 +133,23 @@ export default function CardItem({
   item,
   focused,
   onSelect,
+  dragOffsetFromCenter,
+  dragForwardPx,
+  isDragging,
+  releaseTick,
+  spacing,
+  dragPixelsPerCard,
 }: {
   item: ExperienceItem
   focused: boolean
   onSelect: () => void
+  /** This card's position relative to the active card, in whole cards (0 = active). */
+  dragOffsetFromCenter: number
+  dragForwardPx: React.RefObject<number>
+  isDragging: React.RefObject<boolean>
+  releaseTick: number
+  spacing: number
+  dragPixelsPerCard: number
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const cardMatRef = useRef<THREE.MeshStandardMaterial>(null)
@@ -183,7 +200,50 @@ export default function CardItem({
         ease: 'power3.out',
       })
     }
-  }, [focused, tuning])
+    // releaseTick isn't read here, but (as in Row's own settle effect in
+    // Scene.tsx) a drag release that doesn't cross the snap threshold
+    // leaves this card sitting at a live-follow proximity value with no
+    // `focused` change to re-trigger this tween — bumping releaseTick on
+    // every release, snapped or not, covers that case too.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focused, tuning, releaseTick])
+
+  const wasDraggingRef = useRef(false)
+
+  useFrame(() => {
+    if (!groupRef.current) return
+    if (!isDragging.current) {
+      wasDraggingRef.current = false
+      return
+    }
+    if (!wasDraggingRef.current) {
+      // Just started dragging: stop any in-flight snap tween so the live,
+      // non-animated proximity values below take over cleanly instead of
+      // fighting it for the same properties.
+      wasDraggingRef.current = true
+      gsap.killTweensOf(groupRef.current.scale)
+      gsap.killTweensOf(groupRef.current.position)
+      gsap.killTweensOf(groupRef.current.rotation)
+      if (cardMatRef.current) gsap.killTweensOf(cardMatRef.current)
+    }
+
+    // This card's live world-space distance from center, in card-widths:
+    // 0 when it's the one passing through the middle, growing as it moves
+    // away. Mirrors the row's own live-follow math in Scene.tsx so this
+    // card's "focus" tracks the same position the row is actually at.
+    const dragWorldUnits = (dragForwardPx.current / dragPixelsPerCard) * spacing
+    const worldOffset = dragOffsetFromCenter * spacing - dragWorldUnits
+    const proximity = Math.max(0, 1 - Math.abs(worldOffset) / spacing)
+
+    groupRef.current.scale.setScalar(lerp(tuning.unfocusedScale, tuning.focusedScale, proximity))
+    groupRef.current.position.y = lerp(0, tuning.focusedPositionY, proximity)
+    groupRef.current.rotation.x = lerp(tuning.unfocusedRotationX, tuning.focusedRotationX, proximity)
+    groupRef.current.rotation.y = lerp(tuning.unfocusedRotationY, tuning.focusedRotationY, proximity)
+    groupRef.current.rotation.z = lerp(tuning.unfocusedRotationZ, tuning.focusedRotationZ, proximity)
+    if (cardMatRef.current) {
+      cardMatRef.current.opacity = lerp(0.55, 1, proximity)
+    }
+  })
 
   return (
     <group

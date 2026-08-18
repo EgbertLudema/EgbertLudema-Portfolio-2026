@@ -64,7 +64,17 @@ function Row({
     <group ref={groupRef}>
       {items.map((item, index) => (
         <group key={item.id} position={[index * SPACING, 0, 0]}>
-          <CardItem item={item} focused={index === activeIndex} onSelect={() => onSelect(index)} />
+          <CardItem
+            item={item}
+            focused={index === activeIndex}
+            onSelect={() => onSelect(index)}
+            dragOffsetFromCenter={index - activeIndex}
+            dragForwardPx={dragForwardPx}
+            isDragging={isDragging}
+            releaseTick={releaseTick}
+            spacing={SPACING}
+            dragPixelsPerCard={DRAG_PIXELS_PER_CARD}
+          />
         </group>
       ))}
     </group>
@@ -103,11 +113,9 @@ const MAX_DOLLY = 2.2
 
 // Below this aspect ratio the layout switches to the mobile drawer (no
 // side list, no bottom bar competing for frame space, see the 720px CSS
-// breakpoint), so the active card can fill more of the screen instead of
-// leaving room for neighbours to peek in. The desktop lookAt.x offset
-// exists only to make room for that now-hidden side list, so it's dropped
-// too — the active card (always at local x=0 after Row's tween) lands
-// dead centre instead of left-of-centre.
+// breakpoint). Mobile forces lookAt.x to 0 regardless of the Leva-tunable
+// camera.lookAtX default above (also 0), so a debug session nudging that
+// slider for desktop framing can't accidentally decentre the mobile view.
 const MOBILE_ASPECT_THRESHOLD = 0.8
 const MOBILE_DOLLY = 1.05
 // Aiming slightly below the card's actual height pushes its projected
@@ -174,7 +182,7 @@ export default function Scene({
       positionY: { value: 1.1, min: -10, max: 10, step: 0.1 },
       positionZ: { value: 6.4, min: -10, max: 20, step: 0.1 },
       fov: { value: 40, min: 10, max: 100, step: 1 },
-      lookAtX: { value: 0.8, min: -10, max: 10, step: 0.1 },
+      lookAtX: { value: 0, min: -10, max: 10, step: 0.1 },
       lookAtY: { value: 0, min: -10, max: 10, step: 0.1 },
       lookAtZ: { value: 0, min: -10, max: 10, step: 0.1 },
     },
@@ -183,7 +191,15 @@ export default function Scene({
 
   return (
     <Canvas
-      dpr={1}
+      // Fixed at 1 previously, ignoring real device pixel density. Phones
+      // commonly report 2-3x, and the mobile camera also dollies in closer
+      // (MOBILE_DOLLY above) than desktop, so the same flat under-resolution
+      // read as pixelation there far more than on a typical 1x desktop
+      // monitor. Capped at 2 (rather than uncapped) to avoid tanking frame
+      // rate on very high-density phones — this app already has WebGL
+      // context-loss recovery wired up (see onCreated below), a sign GPU
+      // headroom here has been tight before.
+      dpr={[1, 2]}
       gl={{ antialias: false, alpha: true, powerPreference: 'default' }}
       onCreated={({ scene, gl }) => {
         scene.background = null
