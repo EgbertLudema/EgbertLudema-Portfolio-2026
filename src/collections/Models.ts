@@ -22,6 +22,10 @@ export const Models: CollectionConfig = {
       '.glb',
       '.gltf',
     ],
+    // Vercel Blob client uploads bypass the server, so Payload re-fetches the file to sniff its
+    // type. That re-fetch can miss (CDN propagation lag right after upload), and its extension
+    // fallback doesn't know .glb/.gltf, so it wrongly rejects real uploads as "text/plain".
+    allowRestrictedFileTypes: true,
   },
   fields: [
     {
