@@ -266,23 +266,35 @@ export default function VaultSceneModel({
     // so their centering is correct regardless of outerRef's base rotation.
     //
     // Box3.setFromObject(scene) measures in WORLD space, which includes
-    // modelWrapRef's own current scale/position/rotation — the very values
-    // this effect is about to compute FROM that measurement. That's fine on
-    // a clean first run (modelWrapRef starts at its identity transform), but
-    // this effect can run twice on the same cached scene (see the
-    // closedRotationY idempotency guard below — already known to happen):
-    // on a second run modelWrapRef still holds the *previous* run's scale,
-    // so the "size" measured here is that previous scale applied to the
-    // real geometry, and dividing targetSize by it produces a wildly wrong
-    // (and non-deterministic, reload to reload) result. Reset the wrapper
-    // to identity and force a fresh matrix pass first so every run measures
-    // the model's true, unscaled size regardless of how many times this
-    // effect has already fired.
+    // every ancestor's current matrix — outerRef's fixed base rotation,
+    // modelWrapRef's own scale/position/rotation (the very values this
+    // effect is about to compute FROM that measurement), all the way up.
+    // Two separate ways that can be stale/wrong at the moment this runs:
+    //  1. modelWrapRef still holding a *previous* effect run's scale (this
+    //     effect can fire twice on the same cached scene — see the
+    //     closedRotationY guard below, already known to happen). Dividing
+    //     targetSize by an already-scaled measurement produces a wildly
+    //     wrong result.
+    //  2. On a cold first paint (fresh load/hard refresh, before Three.js's
+    //     renderer has run even one frame), matrixWorld on outerRef and
+    //     everything above it can still be sitting at its default identity
+    //     value, never having been computed from the actual rotation/
+    //     position props — a warm client-side navigation has usually
+    //     already rendered a frame by the time this effect fires, which is
+    //     why the bug reads as "wrong on hard refresh, fine after
+    //     navigating away and back".
+    // updateWorldMatrix(true, true) (unlike updateMatrixWorld, which only
+    // pushes downward using whatever the parent chain already holds) walks
+    // *up* through every ancestor first, forcing each one's matrix fresh
+    // regardless of render timing, then back down through this node and its
+    // children — so resetting to identity here and calling it covers both
+    // cases, independent of how many times this effect has run or whether
+    // any frame has rendered yet.
     if (hasDoor && modelWrapRef.current) {
       modelWrapRef.current.scale.set(1, 1, 1)
       modelWrapRef.current.position.set(0, 0, 0)
       modelWrapRef.current.rotation.set(0, 0, 0)
-      modelWrapRef.current.updateMatrixWorld(true)
+      modelWrapRef.current.updateWorldMatrix(true, true)
     }
     const box = hasDoor ? new THREE.Box3().setFromObject(scene) : getLocalBoundingBox(scene)
     const center = box.getCenter(new THREE.Vector3())
