@@ -29,6 +29,7 @@ export const dictionaries = {
     about: {
       education: 'Education',
       experience: 'Experience',
+      downloadCv: 'Download CV',
     },
     common: {
       gallery: 'Gallery',
@@ -70,11 +71,13 @@ export const dictionaries = {
       scrollHint: 'scroll',
       viewProject: 'Bekijk project',
       noProjects: 'Nog geen projecten. Voeg ze toe in het Payload admin.',
-      webglError: 'De 3D-weergave blijft crashen op dit apparaat. Ververs de pagina om het opnieuw te proberen.',
+      webglError:
+        'De 3D-weergave blijft crashen op dit apparaat. Ververs de pagina om het opnieuw te proberen.',
     },
     about: {
       education: 'Opleiding',
       experience: 'Werkervaring',
+      downloadCv: 'CV downloaden',
     },
     common: {
       gallery: 'Galerij',

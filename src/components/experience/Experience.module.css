@@ -12,6 +12,12 @@
   cursor: grabbing;
 }
 
+.heroScreen {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+}
+
 .canvasWrap {
   position: absolute;
   inset: 0;
@@ -421,6 +427,13 @@
   color: var(--color-muted);
 }
 
+/* Reachable only by scrolling down past the hero on mobile — see the
+   `.stage` overflow/touch-action swap in the mobile media query below.
+   Desktop keeps its permanently pinned `.bottomBar` instead. */
+.mobileFooter {
+  display: none;
+}
+
 @keyframes riseIn {
   from {
     opacity: 0;
@@ -457,6 +470,27 @@
 }
 
 @media (max-width: 720px) {
+  /* Lets a vertical drag scroll natively to the footer below the hero
+     screen, instead of being fully captured by the carousel like every
+     other gesture here. touch-action: pan-y reserves vertical panning for
+     the browser while leaving horizontal touchmoves free for the carousel's
+     own JS handlers (see Experience.tsx's isMobileRef-gated updateDrag). */
+  .stage {
+    overflow-y: auto;
+    touch-action: pan-y;
+  }
+
+  .mobileFooter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 24px max(22px, env(safe-area-inset-right))
+      calc(28px + env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
+    border-top: 1px solid var(--color-line);
+  }
+
   .topBar {
     padding-left: max(22px, env(safe-area-inset-left));
     padding-right: max(22px, env(safe-area-inset-right));

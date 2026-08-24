@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { getPayload } from 'payload'
 
 import config from '@payload-config'
-import type { Media, Skill } from '@/payload-types'
+import type { Document as CvDocument, Media, Skill } from '@/payload-types'
 import { getDictionary } from '@/lib/i18n'
 import { getLocale } from '@/lib/getLocale'
 import { renderContent } from '@/lib/renderContent'
@@ -43,6 +43,7 @@ export default async function AboutPage() {
   const education = about.education ?? []
   const experience = about.experience ?? []
   const photo = typeof about.photo === 'object' ? (about.photo as Media) : null
+  const cv = typeof about.cv === 'object' ? (about.cv as CvDocument) : null
 
   return (
     <main className={styles.stage}>
@@ -56,6 +57,18 @@ export default async function AboutPage() {
             {about.category ? <p className={styles.category}>{about.category}</p> : null}
             <h1 className={styles.title}>{about.title}</h1>
             <p className={styles.description}>{about.description}</p>
+            {cv?.url ? (
+              <div className={styles.linkRow}>
+                <a
+                  href={cv.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.linkPill}
+                >
+                  {t.about.downloadCv} ↓
+                </a>
+              </div>
+            ) : null}
           </div>
         </header>
 
@@ -78,10 +91,14 @@ export default async function AboutPage() {
                     <div className={styles.entryBody}>
                       <div className={styles.entryHead}>
                         <span className={styles.entryOrg}>{item.company}</span>
-                        {item.period ? <span className={styles.entryPeriod}>{item.period}</span> : null}
+                        {item.period ? (
+                          <span className={styles.entryPeriod}>{item.period}</span>
+                        ) : null}
                       </div>
                       <p className={styles.entryTitle}>{item.role}</p>
-                      {item.description ? <p className={styles.entryDescription}>{item.description}</p> : null}
+                      {item.description ? (
+                        <p className={styles.entryDescription}>{item.description}</p>
+                      ) : null}
                       {entrySkills(item.skills).length > 0 ? (
                         <ul className={styles.entrySkills}>
                           {entrySkills(item.skills).map((skill) => (
@@ -116,7 +133,9 @@ export default async function AboutPage() {
                     <div className={styles.entryBody}>
                       <div className={styles.entryHead}>
                         <span className={styles.entryOrg}>{item.institution}</span>
-                        {item.period ? <span className={styles.entryPeriod}>{item.period}</span> : null}
+                        {item.period ? (
+                          <span className={styles.entryPeriod}>{item.period}</span>
+                        ) : null}
                       </div>
                       <p className={styles.entryTitle}>{item.title}</p>
                       {entrySkills(item.skills).length > 0 ? (
@@ -142,7 +161,9 @@ export default async function AboutPage() {
             <ul className={styles.skillList}>
               {skills.map((skill) => (
                 <li key={skill.id}>
-                  <span className={`${styles.skillChip} ${styles.skillChipStatic}`}>{skill.title}</span>
+                  <span className={`${styles.skillChip} ${styles.skillChipStatic}`}>
+                    {skill.title}
+                  </span>
                 </li>
               ))}
             </ul>

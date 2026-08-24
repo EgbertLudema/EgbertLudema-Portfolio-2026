@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { Users } from './collections/Users'
+import { Documents } from './collections/Documents'
 import { Media } from './collections/Media'
 import { Models } from './collections/Models'
 import { Projects } from './collections/Projects'
@@ -25,7 +26,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Models, Projects, Skills],
+  collections: [Users, Media, Models, Documents, Projects, Skills],
   globals: [AboutPage, ContactPage, SkillsPage],
   localization: {
     locales: ['en', 'nl'],
@@ -51,6 +52,7 @@ export default buildConfig({
             collections: {
               media: true,
               models: true,
+              documents: true,
             },
             token: process.env.BLOB_READ_WRITE_TOKEN,
             clientUploads: true,

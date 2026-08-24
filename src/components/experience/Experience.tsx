@@ -114,6 +114,12 @@ export default function Experience({
   const dragForwardPx = useRef(0)
   const isDraggingRef = useRef(false)
   const recoveryCountRef = useRef(0)
+  const stageRef = useRef<HTMLElement>(null)
+  // Mirrors the 720px CSS breakpoint where `.stage` switches from a
+  // non-scrolling carousel-only surface to a scrollable one with a footer
+  // below it — see the touch handlers, which only let a vertical drag fall
+  // through to native scroll (instead of driving the carousel) at that width.
+  const isMobileRef = useRef(false)
   const listRef = useRef<HTMLElement>(null)
   const travelDotRef = useRef<HTMLSpanElement>(null)
   const dotRefs = useRef<(HTMLSpanElement | null)[]>([])
@@ -172,6 +178,16 @@ export default function Experience({
   }, [activeIndex])
 
   useEffect(() => {
+    const query = window.matchMedia('(max-width: 720px)')
+    const sync = () => {
+      isMobileRef.current = query.matches
+    }
+    sync()
+    query.addEventListener('change', sync)
+    return () => query.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
     const onWheel = (event: WheelEvent) => {
       if (menuOpenRef.current) return
       event.preventDefault()
@@ -199,6 +215,10 @@ export default function Experience({
     // "did it work?" threshold check.
     const beginDrag = (x: number, y: number) => {
       if (menuOpenRef.current) return
+      // Once scrolled down into the mobile footer, there's nothing to
+      // swipe — leave the gesture to native scroll entirely rather than
+      // starting a carousel drag that has no visible row to follow.
+      if (isMobileRef.current && (stageRef.current?.scrollTop ?? 0) > 8) return
       dragStart.current = { x, y }
       dragForwardPx.current = 0
       isDraggingRef.current = true
@@ -208,12 +228,17 @@ export default function Experience({
     // Continuously tracked (not just start/end) so the row can live-follow
     // the finger/cursor — see Row's useFrame in Scene.tsx. Picks whichever
     // axis (horizontal swipe or vertical scroll) has moved further so far,
-    // so either gesture drives the same "forward" direction.
-    const updateDrag = (x: number, y: number) => {
+    // so either gesture drives the same "forward" direction — except touch
+    // on mobile, where vertical is left to the browser's native scroll
+    // (down to the footer) instead of also paging the carousel; see the
+    // `.stage` touch-action: pan-y swap in Experience.module.css.
+    const updateDrag = (x: number, y: number, isTouch: boolean) => {
       if (menuOpenRef.current || !dragStart.current) return
       const dx = dragStart.current.x - x
       const dy = dragStart.current.y - y
-      dragForwardPx.current = Math.abs(dx) > Math.abs(dy) ? dx : dy
+      const horizontalDominant = Math.abs(dx) > Math.abs(dy)
+      if (isTouch && isMobileRef.current && !horizontalDominant) return
+      dragForwardPx.current = horizontalDominant ? dx : dy
     }
 
     const endDrag = () => {
@@ -241,7 +266,7 @@ export default function Experience({
 
     const onTouchMove = (event: TouchEvent) => {
       const touch = event.touches[0]
-      if (touch) updateDrag(touch.clientX, touch.clientY)
+      if (touch) updateDrag(touch.clientX, touch.clientY, true)
     }
 
     const onTouchEnd = () => endDrag()
@@ -256,7 +281,7 @@ export default function Experience({
 
     const onPointerMove = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return
-      updateDrag(event.clientX, event.clientY)
+      updateDrag(event.clientX, event.clientY, false)
     }
 
     const onPointerUp = (event: PointerEvent) => {
@@ -376,6 +401,30 @@ export default function Experience({
 
   const active = items[activeIndex]
 
+  // Shared by the pinned desktop footer, the hamburger menu's footer, and
+  // the mobile scroll-to-reveal footer below — same mail/socials content in
+  // three different layout contexts.
+  const footerLinks = (
+    <>
+      {contact.email ? (
+        <a href={`mailto:${contact.email}`} className={styles.bottomBarLink}>
+          Mail
+        </a>
+      ) : null}
+      {contact.socials.map((social) => (
+        <a
+          key={social.id}
+          href={social.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.bottomBarLink}
+        >
+          {social.label}
+        </a>
+      ))}
+    </>
+  )
+
   if (!active) {
     return (
       <main className={styles.stage}>
@@ -389,196 +438,172 @@ export default function Experience({
   return (
     <DebugStoreProvider value={debugStore}>
       {isDev && <DebugPanel store={debugStore} />}
-      <main className={`${styles.stage} ${dragging ? styles.stageDragging : ''}`}>
-        <div className={styles.canvasWrap}>
-          {canvasGaveUp ? (
-            <div
-              className={styles.bottomCenter}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <p className={styles.description}>{t.home.webglError}</p>
-            </div>
-          ) : (
-            <Scene
-              key={canvasKey}
-              items={items}
-              activeIndex={activeIndex}
-              onSelect={jumpTo}
-              onContextLost={handleContextLost}
-              dragForwardPx={dragForwardPx}
-              isDragging={isDraggingRef}
-              releaseTick={releaseTick}
-            />
-          )}
-        </div>
-
-        <header className={styles.topBar}>
-          <div className={styles.topBarLeft}>
-            <span className={styles.mark}>
-              <span className={styles.markDot} />
-              {t.nav.mark}
-            </span>
-            <Clock locale={locale} />
+      <main className={`${styles.stage} ${dragging ? styles.stageDragging : ''}`} ref={stageRef}>
+        <div className={styles.heroScreen}>
+          <div className={styles.canvasWrap}>
+            {canvasGaveUp ? (
+              <div
+                className={styles.bottomCenter}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <p className={styles.description}>{t.home.webglError}</p>
+              </div>
+            ) : (
+              <Scene
+                key={canvasKey}
+                items={items}
+                activeIndex={activeIndex}
+                onSelect={jumpTo}
+                onContextLost={handleContextLost}
+                dragForwardPx={dragForwardPx}
+                isDragging={isDraggingRef}
+                releaseTick={releaseTick}
+              />
+            )}
           </div>
-          <div className={styles.topBarRight}>
-            <nav className={styles.topNav} aria-label={t.nav.siteNavigation}>
-              <TransitionLink href="/about" className={styles.topNavLink}>
-                {t.nav.about}
-              </TransitionLink>
-              <TransitionLink href="/projects" className={styles.topNavLink}>
-                {t.nav.projects}
-              </TransitionLink>
-              <TransitionLink href="/contact" className={styles.topNavLink}>
-                {t.nav.contact}
-              </TransitionLink>
-              <LanguageSwitch locale={locale} />
-            </nav>
-            <button
-              type="button"
-              className={styles.menuToggle}
-              aria-expanded={menuOpen}
-              aria-label={menuOpen ? t.nav.closeMenu : t.nav.openMenu}
-              onClick={() => setMenuOpen((open) => !open)}
-            >
-              <span className={`${styles.menuToggleBars} ${menuOpen ? styles.menuToggleOpen : ''}`}>
-                <span />
-                <span />
+
+          <header className={styles.topBar}>
+            <div className={styles.topBarLeft}>
+              <span className={styles.mark}>
+                <span className={styles.markDot} />
+                {t.nav.mark}
               </span>
-            </button>
-          </div>
-        </header>
-
-        {menuOpen ? (
-          <div className={styles.menuBackdrop} onClick={() => setMenuOpen(false)}>
-            <div
-              className={styles.menuPanel}
-              role="dialog"
-              aria-modal="true"
-              aria-label={t.nav.siteNavigation}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className={styles.menuHeader}>
-                <span className={styles.mark}>
-                  <span className={styles.markDot} />
-                  {t.nav.mark}
-                </span>
-                <button
-                  type="button"
-                  className={styles.menuClose}
-                  aria-label={t.nav.closeMenu}
-                  onClick={() => setMenuOpen(false)}
+              <Clock locale={locale} />
+            </div>
+            <div className={styles.topBarRight}>
+              <nav className={styles.topNav} aria-label={t.nav.siteNavigation}>
+                <TransitionLink href="/about" className={styles.topNavLink}>
+                  {t.nav.about}
+                </TransitionLink>
+                <TransitionLink href="/projects" className={styles.topNavLink}>
+                  {t.nav.projects}
+                </TransitionLink>
+                <TransitionLink href="/contact" className={styles.topNavLink}>
+                  {t.nav.contact}
+                </TransitionLink>
+                <LanguageSwitch locale={locale} />
+              </nav>
+              <button
+                type="button"
+                className={styles.menuToggle}
+                aria-expanded={menuOpen}
+                aria-label={menuOpen ? t.nav.closeMenu : t.nav.openMenu}
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                <span
+                  className={`${styles.menuToggleBars} ${menuOpen ? styles.menuToggleOpen : ''}`}
                 >
-                  {/* Same two-bar icon as the header's hamburger toggle, just
+                  <span />
+                  <span />
+                </span>
+              </button>
+            </div>
+          </header>
+
+          {menuOpen ? (
+            <div className={styles.menuBackdrop} onClick={() => setMenuOpen(false)}>
+              <div
+                className={styles.menuPanel}
+                role="dialog"
+                aria-modal="true"
+                aria-label={t.nav.siteNavigation}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className={styles.menuHeader}>
+                  <span className={styles.mark}>
+                    <span className={styles.markDot} />
+                    {t.nav.mark}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.menuClose}
+                    aria-label={t.nav.closeMenu}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {/* Same two-bar icon as the header's hamburger toggle, just
                       permanently in its rotated "X" state (this button only
                       exists while the menu is already open) — keeps both
                       close affordances visually consistent instead of one
                       being a plain "&times;" glyph. */}
-                  <span className={`${styles.menuToggleBars} ${styles.menuToggleOpen}`}>
-                    <span />
-                    <span />
-                  </span>
-                </button>
-              </div>
-
-              <nav className={styles.menuNav} aria-label={t.nav.siteNavigation}>
-                <TransitionLink href="/about" className={styles.menuNavLink}>
-                  {t.nav.about}
-                </TransitionLink>
-                <TransitionLink href="/projects" className={styles.menuNavLink}>
-                  {t.nav.projects}
-                </TransitionLink>
-                <TransitionLink href="/contact" className={styles.menuNavLink}>
-                  {t.nav.contact}
-                </TransitionLink>
-              </nav>
-              <LanguageSwitch locale={locale} className={styles.menuLanguage} />
-
-              <div className={styles.menuFooter}>
-                <div className={styles.menuFooterLinks}>
-                  {contact.email ? (
-                    <a href={`mailto:${contact.email}`} className={styles.bottomBarLink}>
-                      Mail
-                    </a>
-                  ) : null}
-                  {contact.socials.map((social) => (
-                    <a
-                      key={social.id}
-                      href={social.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.bottomBarLink}
-                    >
-                      {social.label}
-                    </a>
-                  ))}
+                    <span className={`${styles.menuToggleBars} ${styles.menuToggleOpen}`}>
+                      <span />
+                      <span />
+                    </span>
+                  </button>
                 </div>
-                <span className={styles.bottomBarCopyright}>&copy; {year} Egbert Ludema</span>
+
+                <nav className={styles.menuNav} aria-label={t.nav.siteNavigation}>
+                  <TransitionLink href="/about" className={styles.menuNavLink}>
+                    {t.nav.about}
+                  </TransitionLink>
+                  <TransitionLink href="/projects" className={styles.menuNavLink}>
+                    {t.nav.projects}
+                  </TransitionLink>
+                  <TransitionLink href="/contact" className={styles.menuNavLink}>
+                    {t.nav.contact}
+                  </TransitionLink>
+                </nav>
+                <LanguageSwitch locale={locale} className={styles.menuLanguage} />
+
+                <div className={styles.menuFooter}>
+                  <div className={styles.menuFooterLinks}>{footerLinks}</div>
+                  <span className={styles.bottomBarCopyright}>&copy; {year} Egbert Ludema</span>
+                </div>
               </div>
             </div>
+          ) : null}
+
+          <div className={styles.bottomLeft}>
+            <span className={styles.index}>
+              {String(activeIndex + 1).padStart(2, '0')} / {String(items.length).padStart(2, '0')}
+            </span>
+            <span>{t.home.scrollHint}</span>
           </div>
-        ) : null}
 
-        <div className={styles.bottomLeft}>
-          <span className={styles.index}>
-            {String(activeIndex + 1).padStart(2, '0')} / {String(items.length).padStart(2, '0')}
-          </span>
-          <span>{t.home.scrollHint}</span>
-        </div>
+          <div className={styles.bottomCenter} key={active.id}>
+            <p className={styles.category}>{active.category}</p>
+            <h1 className={styles.title}>{active.title}</h1>
+            <p className={styles.description}>{active.description}</p>
+            <TransitionLink href={`/projects/${active.slug}`} className={styles.viewProject}>
+              {t.home.viewProject}
+              <span aria-hidden="true">&rarr;</span>
+            </TransitionLink>
+          </div>
 
-        <div className={styles.bottomCenter} key={active.id}>
-          <p className={styles.category}>{active.category}</p>
-          <h1 className={styles.title}>{active.title}</h1>
-          <p className={styles.description}>{active.description}</p>
-          <TransitionLink href={`/projects/${active.slug}`} className={styles.viewProject}>
-            {t.home.viewProject} &rarr;
-          </TransitionLink>
-        </div>
-
-        <nav className={styles.list} aria-label={t.nav.projectList} ref={listRef}>
-          <span className={styles.travelDot} ref={travelDotRef} />
-          {items.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`${styles.listItem} ${index === activeIndex ? styles.listItemActive : ''}`}
-              onClick={() => jumpTo(index)}
-            >
-              <span
-                className={styles.listDot}
-                ref={(el) => {
-                  dotRefs.current[index] = el
-                }}
-              />
-              {item.title}
-            </button>
-          ))}
-        </nav>
-
-        <footer className={styles.bottomBar}>
-          <div className={styles.bottomBarLinks}>
-            {contact.email ? (
-              <a href={`mailto:${contact.email}`} className={styles.bottomBarLink}>
-                Mail
-              </a>
-            ) : null}
-            {contact.socials.map((social) => (
-              <a
-                key={social.id}
-                href={social.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.bottomBarLink}
+          <nav className={styles.list} aria-label={t.nav.projectList} ref={listRef}>
+            <span className={styles.travelDot} ref={travelDotRef} />
+            {items.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`${styles.listItem} ${index === activeIndex ? styles.listItemActive : ''}`}
+                onClick={() => jumpTo(index)}
               >
-                {social.label}
-              </a>
+                <span
+                  className={styles.listDot}
+                  ref={(el) => {
+                    dotRefs.current[index] = el
+                  }}
+                />
+                {item.title}
+              </button>
             ))}
-          </div>
+          </nav>
+
+          <footer className={styles.bottomBar}>
+            <div className={styles.bottomBarLinks}>{footerLinks}</div>
+            <span className={styles.bottomBarCopyright}>&copy; {year} Egbert Ludema</span>
+          </footer>
+        </div>
+
+        <footer className={styles.mobileFooter}>
+          <div className={styles.bottomBarLinks}>{footerLinks}</div>
           <span className={styles.bottomBarCopyright}>&copy; {year} Egbert Ludema</span>
         </footer>
       </main>

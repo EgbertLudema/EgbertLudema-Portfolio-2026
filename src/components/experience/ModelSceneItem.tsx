@@ -264,6 +264,26 @@ export default function VaultSceneModel({
     // The vault's measurement stays exactly as before (its offsets were
     // tuned against it); other models use the ancestor-independent version
     // so their centering is correct regardless of outerRef's base rotation.
+    //
+    // Box3.setFromObject(scene) measures in WORLD space, which includes
+    // modelWrapRef's own current scale/position/rotation — the very values
+    // this effect is about to compute FROM that measurement. That's fine on
+    // a clean first run (modelWrapRef starts at its identity transform), but
+    // this effect can run twice on the same cached scene (see the
+    // closedRotationY idempotency guard below — already known to happen):
+    // on a second run modelWrapRef still holds the *previous* run's scale,
+    // so the "size" measured here is that previous scale applied to the
+    // real geometry, and dividing targetSize by it produces a wildly wrong
+    // (and non-deterministic, reload to reload) result. Reset the wrapper
+    // to identity and force a fresh matrix pass first so every run measures
+    // the model's true, unscaled size regardless of how many times this
+    // effect has already fired.
+    if (hasDoor && modelWrapRef.current) {
+      modelWrapRef.current.scale.set(1, 1, 1)
+      modelWrapRef.current.position.set(0, 0, 0)
+      modelWrapRef.current.rotation.set(0, 0, 0)
+      modelWrapRef.current.updateMatrixWorld(true)
+    }
     const box = hasDoor ? new THREE.Box3().setFromObject(scene) : getLocalBoundingBox(scene)
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())

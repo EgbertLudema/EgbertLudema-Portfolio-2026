@@ -19,6 +19,16 @@ export const AboutPage: GlobalConfig = {
       },
     },
     {
+      name: 'cv',
+      type: 'upload',
+      relationTo: 'documents',
+      localized: true,
+      admin: {
+        description:
+          'CV/resume PDF for this locale. When set, a "Download CV" button appears on the About page.',
+      },
+    },
+    {
       name: 'category',
       type: 'text',
       localized: true,
@@ -100,7 +110,7 @@ export const AboutPage: GlobalConfig = {
           type: 'checkbox',
           defaultValue: false,
           admin: {
-            description: 'Current / ongoing — highlights this entry\'s dot on the About page.',
+            description: "Current / ongoing — highlights this entry's dot on the About page.",
           },
         },
         {
@@ -168,7 +178,7 @@ export const AboutPage: GlobalConfig = {
           type: 'checkbox',
           defaultValue: false,
           admin: {
-            description: 'Current / ongoing — highlights this entry\'s dot on the About page.',
+            description: "Current / ongoing — highlights this entry's dot on the About page.",
           },
         },
         {

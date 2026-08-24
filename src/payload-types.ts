@@ -70,6 +70,7 @@ export interface Config {
     users: User;
     media: Media;
     models: Model;
+    documents: Document;
     projects: Project;
     skills: Skill;
     'payload-kv': PayloadKv;
@@ -82,6 +83,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     models: ModelsSelect<false> | ModelsSelect<true>;
+    documents: DocumentsSelect<false> | DocumentsSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
     skills: SkillsSelect<false> | SkillsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -185,6 +187,30 @@ export interface Model {
   id: number;
   /**
    * Short internal name, e.g. "Vault safe"
+   */
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * Upload PDFs (e.g. a CV) to link/download elsewhere on the site.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents".
+ */
+export interface Document {
+  id: number;
+  /**
+   * Short internal name, e.g. "CV 2026"
    */
   alt: string;
   updatedAt: string;
@@ -357,6 +383,10 @@ export interface PayloadLockedDocument {
         value: number | Model;
       } | null)
     | ({
+        relationTo: 'documents';
+        value: number | Document;
+      } | null)
+    | ({
         relationTo: 'projects';
         value: number | Project;
       } | null)
@@ -451,6 +481,24 @@ export interface MediaSelect<T extends boolean = true> {
  * via the `definition` "models_select".
  */
 export interface ModelsSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents_select".
+ */
+export interface DocumentsSelect<T extends boolean = true> {
   alt?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -566,6 +614,10 @@ export interface AboutPage {
    * Portrait photo shown on the About page.
    */
   photo?: (number | null) | Media;
+  /**
+   * CV/resume PDF for this locale. When set, a "Download CV" button appears on the About page.
+   */
+  cv?: (number | null) | Document;
   /**
    * Small label shown above the title, e.g. "ABOUT · 2026"
    */
@@ -717,6 +769,7 @@ export interface SkillsPage {
  */
 export interface AboutPageSelect<T extends boolean = true> {
   photo?: T;
+  cv?: T;
   category?: T;
   title?: T;
   description?: T;
