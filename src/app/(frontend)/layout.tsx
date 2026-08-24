@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, Geist_Mono } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import React from 'react'
 
 import { getDictionary } from '@/lib/i18n'
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} className={`${mono.variable} ${title.variable}`}>
       <body>
         <PageTransitionProvider>{children}</PageTransitionProvider>
+        <Analytics />
       </body>
     </html>
   )
