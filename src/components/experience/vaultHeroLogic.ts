@@ -20,7 +20,7 @@ export type ClosingCardPlan = {
   frontDelay: number
   flyInDuration: number
   /** Whether this card had actually popped out and become visible before
-   * the close was triggered — a card interrupted before its own pop delay
+   * the close was triggered: a card interrupted before its own pop delay
    * elapsed should stay invisible through the close, not flash in and
    * fly back to a spot it never left. */
   visibleAtClose: boolean
@@ -131,7 +131,7 @@ export function getSpinAmount(time: number, startTime: number, duration: number,
 }
 
 /** How open the door is (0 = shut, 1 = fully open) purely from how far the
- * open sequence has progressed — used both to render the door while
+ * open sequence has progressed: used both to render the door while
  * opening and to capture its true current state the instant a close is
  * triggered, so an interruption mid-open (or before it's started at all)
  * closes from wherever the door actually is instead of snapping open first. */

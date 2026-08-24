@@ -13,7 +13,7 @@ async function getContactPage(locale: Locale) {
  * homepage renders its own equivalent inline in Experience.tsx, since
  * there it's pinned to the viewport bottom (position: absolute) over the
  * 3D canvas rather than sitting in normal document flow like it does
- * here — same content, different layout context (mirrors PageNav). */
+ * here: same content, different layout context (mirrors PageNav). */
 export default async function PageFooter({ locale }: { locale: Locale }) {
   const contact = await getContactPage(locale)
   const socials = (contact.socials ?? []).filter(

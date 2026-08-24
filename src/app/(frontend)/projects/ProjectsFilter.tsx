@@ -31,7 +31,7 @@ export type FilterableProject = {
 
 /** Skill chips double as a single-select filter (querystring-backed, so
  * arriving from a project's skill link pre-selects it) for the project
- * list below. The filter itself is plain client state — `router.replace`
+ * list below. The filter itself is plain client state: `router.replace`
  * was tried first but goes through Next's navigation/RSC pipeline on every
  * click, which is far too slow for what's just a client-side array filter.
  * The URL is kept in sync with the native History API instead, which is
@@ -57,7 +57,7 @@ export default function ProjectsFilter({
   const setActive = (slug: string) => {
     const next = active === slug ? null : slug
     // Captured before the state update below commits, so it reflects the
-    // grid as it looks right now — the "First" half of Flip's First-Last.
+    // grid as it looks right now, the "First" half of Flip's First-Last.
     flipStateRef.current = gridRef.current ? Flip.getState(gridRef.current.children) : null
     // absolute:true (below) pulls every card out of normal flow for the
     // duration of the flip, so the grid would otherwise collapse to zero
@@ -79,10 +79,12 @@ export default function ProjectsFilter({
     window.history.replaceState(window.history.state, '', url)
   }
 
-  const filteredProjects = active ? projects.filter((project) => project.skillSlugs.includes(active)) : projects
+  const filteredProjects = active
+    ? projects.filter((project) => project.skillSlugs.includes(active))
+    : projects
 
   // Runs after the filtered grid above has committed to the DOM (the
-  // "Last" half) — synchronously, before paint, so there's no flash of the
+  // "Last" half), synchronously before paint, so there's no flash of the
   // unanimated end state. Cards that persist across the filter change
   // animate from their old position/size to their new one; cards leaving
   // or entering are handled by onLeave/onEnter since Flip has no prior
@@ -110,7 +112,7 @@ export default function ProjectsFilter({
       },
     })
     // filteredProjects is a new array every render, but its length/identity
-    // change only when the filter actually changes the visible set — that's
+    // change only when the filter actually changes the visible set: that's
     // exactly the DOM mutation this effect needs to run after.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredProjects])
@@ -141,7 +143,11 @@ export default function ProjectsFilter({
         {filteredProjects.length > 0 ? (
           <div className={styles.projectGrid} ref={gridRef}>
             {filteredProjects.map((project) => (
-              <TransitionLink key={project.id} href={`/projects/${project.slug}`} className={styles.projectCard}>
+              <TransitionLink
+                key={project.id}
+                href={`/projects/${project.slug}`}
+                className={styles.projectCard}
+              >
                 <div
                   className={styles.projectCardMedia}
                   style={{

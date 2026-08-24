@@ -25,7 +25,7 @@ const SCROLL_COLLAPSE_THRESHOLD = 24
  * shared by every non-homepage route. The homepage renders its own
  * equivalent inline in Experience.tsx, since there it floats over the 3D
  * canvas (position: absolute) rather than sitting in normal document flow
- * like it does here — same look, different layout context. */
+ * like it does here: same look, different layout context. */
 export default function PageNav({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
   const pathname = usePathname()
@@ -34,7 +34,7 @@ export default function PageNav({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     // The page itself never scrolls (PageShell's .stage is the fixed,
-    // overflow-y: auto element) — the nav's own direct parent is that
+    // overflow-y: auto element), so the nav's own direct parent is that
     // scroll container, so read scroll position from there instead of from
     // `window`, which stays at 0 the whole time.
     const scrollContainer = headerRef.current?.parentElement

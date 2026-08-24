@@ -104,11 +104,11 @@ export default function Experience({
   const activeIndexRef = useRef(activeIndex)
   const lockRef = useRef(false)
   const wheelAccum = useRef(0)
-  // Shared by touch (finger) and pointer (mouse/pen) drag — both feed the
+  // Shared by touch (finger) and pointer (mouse/pen) drag: both feed the
   // same live-follow + snap system, see Row's useFrame in Scene.tsx.
   const dragStart = useRef<{ x: number; y: number } | null>(null)
   // Positive = dragged toward "next" (finger/cursor moving left or up),
-  // whichever axis is currently dominant — lets the same gesture read as
+  // whichever axis is currently dominant, letting the same gesture read as
   // either a horizontal swipe or a vertical scroll, since both should
   // navigate.
   const dragForwardPx = useRef(0)
@@ -117,7 +117,7 @@ export default function Experience({
   const stageRef = useRef<HTMLElement>(null)
   // Mirrors the 720px CSS breakpoint where `.stage` switches from a
   // non-scrolling carousel-only surface to a scrollable one with a footer
-  // below it — see the touch handlers, which only let a vertical drag fall
+  // below it: see the touch handlers, which only let a vertical drag fall
   // through to native scroll (instead of driving the carousel) at that width.
   const isMobileRef = useRef(false)
   const listRef = useRef<HTMLElement>(null)
@@ -216,7 +216,7 @@ export default function Experience({
     const beginDrag = (x: number, y: number) => {
       if (menuOpenRef.current) return
       // Once scrolled down into the mobile footer, there's nothing to
-      // swipe — leave the gesture to native scroll entirely rather than
+      // swipe, so leave the gesture to native scroll entirely rather than
       // starting a carousel drag that has no visible row to follow.
       if (isMobileRef.current && (stageRef.current?.scrollTop ?? 0) > 8) return
       dragStart.current = { x, y }
@@ -226,9 +226,9 @@ export default function Experience({
     }
 
     // Continuously tracked (not just start/end) so the row can live-follow
-    // the finger/cursor — see Row's useFrame in Scene.tsx. Picks whichever
+    // the finger/cursor: see Row's useFrame in Scene.tsx. Picks whichever
     // axis (horizontal swipe or vertical scroll) has moved further so far,
-    // so either gesture drives the same "forward" direction — except touch
+    // so either gesture drives the same "forward" direction, except touch
     // on mobile, where vertical is left to the browser's native scroll
     // (down to the footer) instead of also paging the carousel; see the
     // `.stage` touch-action: pan-y swap in Experience.module.css.
@@ -271,7 +271,7 @@ export default function Experience({
 
     const onTouchEnd = () => endDrag()
 
-    // Mouse/pen click-and-drag, as an alternative to the wheel — touch
+    // Mouse/pen click-and-drag, as an alternative to the wheel: touch
     // already gets its own gesture via the touch handlers above, so this
     // skips `pointerType === 'touch'` rather than double-handling it.
     const onPointerDown = (event: PointerEvent) => {
@@ -402,7 +402,7 @@ export default function Experience({
   const active = items[activeIndex]
 
   // Shared by the pinned desktop footer, the hamburger menu's footer, and
-  // the mobile scroll-to-reveal footer below — same mail/socials content in
+  // the mobile scroll-to-reveal footer below: same mail/socials content in
   // three different layout contexts.
   const footerLinks = (
     <>
@@ -528,7 +528,7 @@ export default function Experience({
                   >
                     {/* Same two-bar icon as the header's hamburger toggle, just
                       permanently in its rotated "X" state (this button only
-                      exists while the menu is already open) — keeps both
+                      exists while the menu is already open), keeping both
                       close affordances visually consistent instead of one
                       being a plain "&times;" glyph. */}
                     <span className={`${styles.menuToggleBars} ${styles.menuToggleOpen}`}>

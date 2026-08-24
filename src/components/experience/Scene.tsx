@@ -13,7 +13,7 @@ import type { ExperienceItem } from './items'
 
 export const SPACING = 1.3
 // How many drag pixels equal one card's worth of travel, for the live
-// follow effect below — tuned against the on-screen card spacing at
+// follow effect below: tuned against the on-screen card spacing at
 // typical phone widths, not derived from the camera's actual projection
 // (that would need per-frame screen->world unprojection for a value that's
 // only ever used as a feel constant).
@@ -45,7 +45,7 @@ function Row({
     })
     // releaseTick isn't read here, but bumping it (on every drag release,
     // even one that snaps back to the same card) needs to re-trigger this
-    // settle tween — a drag that doesn't cross the snap threshold still
+    // settle tween: a drag that doesn't cross the snap threshold still
     // leaves the row sitting at a live-follow offset that has to ease back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, releaseTick])
@@ -106,7 +106,7 @@ type CameraTuning = {
 // the card row that's spaced out along X (see SPACING). Rather than widen
 // the FOV (which introduces fisheye distortion up close), dolly the camera
 // straight back along its line to the look-at point as the aspect ratio
-// narrows below the reference — same framing angle, just further away, so
+// narrows below the reference, same framing angle, just further away, so
 // the full row comes back into view without warping it.
 const REFERENCE_ASPECT = 1.6
 const MAX_DOLLY = 2.2
@@ -136,7 +136,8 @@ function ResponsiveCamera({ camera }: { camera: CameraTuning }) {
   const isMobile = aspect < MOBILE_ASPECT_THRESHOLD
   const dolly = isMobile
     ? MOBILE_DOLLY
-    : (aspect < REFERENCE_ASPECT ? Math.min(REFERENCE_ASPECT / aspect, MAX_DOLLY) : 1) * DESKTOP_ZOOM
+    : (aspect < REFERENCE_ASPECT ? Math.min(REFERENCE_ASPECT / aspect, MAX_DOLLY) : 1) *
+      DESKTOP_ZOOM
 
   const lookAt = new THREE.Vector3(
     isMobile ? 0 : camera.lookAtX,
@@ -200,7 +201,7 @@ export default function Scene({
       // (MOBILE_DOLLY above) than desktop, so the same flat under-resolution
       // read as pixelation there far more than on a typical 1x desktop
       // monitor. Capped at 2 (rather than uncapped) to avoid tanking frame
-      // rate on very high-density phones — this app already has WebGL
+      // rate on very high-density phones, and this app already has WebGL
       // context-loss recovery wired up (see onCreated below), a sign GPU
       // headroom here has been tight before.
       dpr={[1, 2]}

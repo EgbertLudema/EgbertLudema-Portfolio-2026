@@ -110,7 +110,7 @@ export const AboutPage: GlobalConfig = {
           type: 'checkbox',
           defaultValue: false,
           admin: {
-            description: "Current / ongoing — highlights this entry's dot on the About page.",
+            description: "Current / ongoing: highlights this entry's dot on the About page.",
           },
         },
         {
@@ -178,7 +178,7 @@ export const AboutPage: GlobalConfig = {
           type: 'checkbox',
           defaultValue: false,
           admin: {
-            description: "Current / ongoing — highlights this entry's dot on the About page.",
+            description: "Current / ongoing: highlights this entry's dot on the About page.",
           },
         },
         {

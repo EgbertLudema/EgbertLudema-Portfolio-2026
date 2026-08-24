@@ -653,7 +653,7 @@ export interface AboutPage {
          */
         period?: string | null;
         /**
-         * Current / ongoing — highlights this entry's dot on the About page.
+         * Current / ongoing: highlights this entry's dot on the About page.
          */
         current?: boolean | null;
         /**
@@ -689,7 +689,7 @@ export interface AboutPage {
          */
         description?: string | null;
         /**
-         * Current / ongoing — highlights this entry's dot on the About page.
+         * Current / ongoing: highlights this entry's dot on the About page.
          */
         current?: boolean | null;
         /**

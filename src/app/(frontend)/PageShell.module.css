@@ -90,6 +90,11 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  /* Larger hit area than the text alone, without shifting the visible
+     layout: the negative margin cancels the padding's effect on
+     position/gap spacing in the flex row. */
+  padding: 10px 6px;
+  margin: -10px -6px;
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -149,7 +154,7 @@
 }
 
 .headerText {
-  /* flex-basis: 0 instead of the default auto — otherwise this column's
+  /* flex-basis: 0 instead of the default auto: otherwise this column's
      max-content width (the description's `max-width: 60ch` can exceed the
      space actually left beside the photo) makes it wrap below the photo
      instead of just shrinking to fit next to it. */

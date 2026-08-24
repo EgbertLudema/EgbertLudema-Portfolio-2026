@@ -4,7 +4,7 @@ import { lexicalEditor, TextStateFeature } from '@payloadcms/richtext-lexical'
 
 /** Selecting heading text and applying one of these ("Text Color" in the
  * toolbar) marks which section of a model/framework it belongs to, e.g. the
- * four categories of the Financieel gedrag model diagram — mirrors the
+ * four categories of the Financieel gedrag model diagram, mirroring the
  * dot colors in PageShell.module.css's .headingPurple/.headingOrange/etc. */
 const HEADING_COLOR_STATE = {
   purple: { label: 'Purple', css: { color: '#8f7cc7' } },
@@ -220,7 +220,7 @@ export const Projects: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description:
-          'Other projects to cross-link on this project\'s page, e.g. a case study and the model/framework it applies. Add the link on both sides to cross-link them.',
+          "Other projects to cross-link on this project's page, e.g. a case study and the model/framework it applies. Add the link on both sides to cross-link them.",
       },
     },
   ],

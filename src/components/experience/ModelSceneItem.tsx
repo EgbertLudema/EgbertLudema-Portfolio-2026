@@ -220,7 +220,7 @@ export default function VaultSceneModel({
   const closingCardPlansRef = useRef<ClosingCardPlan[]>([])
   const closeCompleteTimeRef = useRef(0)
   // The door's actual openAmount (0-1) at the instant closing was
-  // triggered — the close sequence eases from this value down to 0, not
+  // triggered: the close sequence eases from this value down to 0, not
   // from an assumed 1, so navigating away before the door finished (or
   // even started) opening doesn't snap it open first. See triggerClose.
   const doorOpenAmountAtCloseRef = useRef(0)
@@ -238,7 +238,7 @@ export default function VaultSceneModel({
     // Some exported glbs (e.g. Blender's default "Sun"/camera export) embed
     // their own KHR_lights_punctual lights. <primitive object={scene}/>
     // mounts the whole GLTF scene graph directly into this shared Canvas's
-    // scene, so an embedded light isn't scoped to this one model — it lights
+    // scene, so an embedded light isn't scoped to this one model: it lights
     // everything else in the scene too, blowing the whole page out white
     // through ACES tone mapping. Scene.tsx already owns the only lighting
     // rig this app wants, so strip any embedded lights before anything else
@@ -266,12 +266,12 @@ export default function VaultSceneModel({
     // so their centering is correct regardless of outerRef's base rotation.
     //
     // Box3.setFromObject(scene) measures in WORLD space, which includes
-    // every ancestor's current matrix — outerRef's fixed base rotation,
+    // every ancestor's current matrix: outerRef's fixed base rotation,
     // modelWrapRef's own scale/position/rotation (the very values this
     // effect is about to compute FROM that measurement), all the way up.
     // Two separate ways that can be stale/wrong at the moment this runs:
     //  1. modelWrapRef still holding a *previous* effect run's scale (this
-    //     effect can fire twice on the same cached scene — see the
+    //     effect can fire twice on the same cached scene, see the
     //     closedRotationY guard below, already known to happen). Dividing
     //     targetSize by an already-scaled measurement produces a wildly
     //     wrong result.
@@ -279,7 +279,7 @@ export default function VaultSceneModel({
     //     renderer has run even one frame), matrixWorld on outerRef and
     //     everything above it can still be sitting at its default identity
     //     value, never having been computed from the actual rotation/
-    //     position props — a warm client-side navigation has usually
+    //     position props. A warm client-side navigation has usually
     //     already rendered a frame by the time this effect fires, which is
     //     why the bug reads as "wrong on hard refresh, fine after
     //     navigating away and back".
@@ -287,7 +287,7 @@ export default function VaultSceneModel({
     // pushes downward using whatever the parent chain already holds) walks
     // *up* through every ancestor first, forcing each one's matrix fresh
     // regardless of render timing, then back down through this node and its
-    // children — so resetting to identity here and calling it covers both
+    // children. Resetting to identity here and calling it covers both
     // cases, independent of how many times this effect has run or whether
     // any frame has rendered yet.
     if (hasDoor && modelWrapRef.current) {
@@ -307,7 +307,7 @@ export default function VaultSceneModel({
     // geometry otherwise, since onClick relies on raycasting against actual
     // meshes. This invisible sphere sits alongside the model, sized and
     // centered from the same bounding-box measurement above, so the whole
-    // model's footprint is clickable — a sphere rather than a flat circle so
+    // model's footprint is clickable: a sphere rather than a flat circle so
     // it still reads as a full hit area from any camera angle even after a
     // model's own rotation tuning turns it edge-on.
     if (hitAreaRef.current) {
@@ -371,7 +371,7 @@ export default function VaultSceneModel({
       const startAngle = getOpenCardOrbitAngle(card, sequenceTime, globalOrbitSpin)
       const frontDistance = getForwardAngleDistance(startAngle, card.startAngle)
       // Whether this card had actually popped out and become visible yet
-      // at the moment of interruption — mirrors the main useFrame's own
+      // at the moment of interruption, mirroring the main useFrame's own
       // `cardTime >= 0` visibility check below.
       const visibleAtClose = sequenceTime - memoryPopStartTime - card.popDelay >= 0
       return { index, startAngle, frontDistance, visibleAtClose }
@@ -469,7 +469,7 @@ export default function VaultSceneModel({
     if (closingElapsed !== null) {
       // Eases from however open the door actually was the instant closing
       // was triggered (doorOpenAmountAtCloseRef, captured in triggerClose)
-      // down to 0 — not from an assumed 1, so an interruption before the
+      // down to 0, not from an assumed 1, so an interruption before the
       // door finished (or even started) opening closes from its real state
       // instead of snapping open first.
       openAmount =
@@ -567,7 +567,7 @@ export default function VaultSceneModel({
           }
         }
         // else: card never popped before the interruption, or has already
-        // finished flying in — stays at the default (invisible, at the
+        // finished flying in: stays at the default (invisible, at the
         // vault's exit point) for the rest of the close.
       } else if (cardTime >= 0 && cardTime < card.popDuration) {
         const popProgress = easeOutBack(cardTime / card.popDuration)

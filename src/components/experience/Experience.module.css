@@ -89,6 +89,11 @@
 }
 
 .topNavLink {
+  /* Larger hit area than the text alone, without shifting the visible
+     layout: the negative margin cancels the padding's effect on
+     position/gap spacing in the flex row. */
+  padding: 10px 6px;
+  margin: -10px -6px;
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -427,7 +432,7 @@
   color: var(--color-muted);
 }
 
-/* Reachable only by scrolling down past the hero on mobile — see the
+/* Reachable only by scrolling down past the hero on mobile: see the
    `.stage` overflow/touch-action swap in the mobile media query below.
    Desktop keeps its permanently pinned `.bottomBar` instead. */
 .mobileFooter {
@@ -486,8 +491,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 24px max(22px, env(safe-area-inset-right))
-      calc(28px + env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
+    padding: 24px max(22px, env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom))
+      max(22px, env(safe-area-inset-left));
     border-top: 1px solid var(--color-line);
   }
 

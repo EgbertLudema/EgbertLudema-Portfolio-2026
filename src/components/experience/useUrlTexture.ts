@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import * as THREE from 'three'
 
 /** Loads `url` as a texture (or clears to `null` when `url` is undefined),
- * without suspending — used for optional, Payload-uploaded "screen" photos
+ * without suspending: used for optional, Payload-uploaded "screen" photos
  * where no image is a valid, common state rather than a loading error. */
 export function useUrlTexture(url?: string) {
   const [texture, setTexture] = useState<THREE.Texture | null>(null)

@@ -8,11 +8,11 @@ import styles from './PageTransition.module.css'
 
 // Smooth, monotonic power eases rather than elastic/back: those overshoot
 // and oscillate, which for a blob growing to cover the whole screen mostly
-// happens off-screen (invisible) — the animation *looks* done almost
+// happens off-screen (invisible), so the animation *looks* done almost
 // immediately regardless of duration, which read as an abrupt jump cut
 // followed by a stalled hold rather than something smooth. A plain
 // ease reaches its target only at the very end, so the growth/shrink is
-// visible for the whole duration — slower, but that's what makes it read
+// visible for the whole duration: slower, but that's what makes it read
 // as smooth and relaxed instead of instant.
 const COVER_DURATION = 1.1
 const REVEAL_DURATION = 0.95
@@ -37,8 +37,8 @@ export function usePageTransition() {
 
 /** A perfectly round dark blob that eases out from wherever was clicked,
  * growing unhurried to fully cover the screen (masking the moment the old
- * route unmounts and the new one — Server Component payload, and for the
- * homepage a fresh WebGL canvas — mounts), then eases back down to nothing
+ * route unmounts and the new one, Server Component payload, and for the
+ * homepage a fresh WebGL canvas, mounts), then eases back down to nothing
  * at the same point to reveal it. Being a circle rather than a panel, it
  * has no edges to square off in the first place. The small accent dot at
  * screen centre doubles as a "something is loading" reassurance during
@@ -125,8 +125,8 @@ export default function PageTransitionProvider({ children }: { children: ReactNo
     if (contentRef.current) {
       // `children` contains `position: fixed` elements (every page's
       // `.stage`) meant to sit relative to the real viewport. A lingering
-      // inline `transform` on this wrapper — which GSAP leaves behind even
-      // once `y` has animated back to 0 — would turn it into the
+      // inline `transform` on this wrapper (which GSAP leaves behind even
+      // once `y` has animated back to 0) would turn it into the
       // containing block for those instead (per the CSS transform spec),
       // silently breaking their positioning and hit-testing. Clear it
       // once the entrance settles rather than leaving it in place.

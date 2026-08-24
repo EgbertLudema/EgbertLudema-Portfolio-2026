@@ -203,7 +203,7 @@ export default function CardItem({
     // releaseTick isn't read here, but (as in Row's own settle effect in
     // Scene.tsx) a drag release that doesn't cross the snap threshold
     // leaves this card sitting at a live-follow proximity value with no
-    // `focused` change to re-trigger this tween — bumping releaseTick on
+    // `focused` change to re-trigger this tween, so bumping releaseTick on
     // every release, snapped or not, covers that case too.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focused, tuning, releaseTick])
@@ -237,9 +237,21 @@ export default function CardItem({
 
     groupRef.current.scale.setScalar(lerp(tuning.unfocusedScale, tuning.focusedScale, proximity))
     groupRef.current.position.y = lerp(0, tuning.focusedPositionY, proximity)
-    groupRef.current.rotation.x = lerp(tuning.unfocusedRotationX, tuning.focusedRotationX, proximity)
-    groupRef.current.rotation.y = lerp(tuning.unfocusedRotationY, tuning.focusedRotationY, proximity)
-    groupRef.current.rotation.z = lerp(tuning.unfocusedRotationZ, tuning.focusedRotationZ, proximity)
+    groupRef.current.rotation.x = lerp(
+      tuning.unfocusedRotationX,
+      tuning.focusedRotationX,
+      proximity,
+    )
+    groupRef.current.rotation.y = lerp(
+      tuning.unfocusedRotationY,
+      tuning.focusedRotationY,
+      proximity,
+    )
+    groupRef.current.rotation.z = lerp(
+      tuning.unfocusedRotationZ,
+      tuning.focusedRotationZ,
+      proximity,
+    )
     if (cardMatRef.current) {
       cardMatRef.current.opacity = lerp(0.55, 1, proximity)
     }
