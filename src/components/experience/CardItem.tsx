@@ -4,7 +4,7 @@ import { RoundedBox, useTexture } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import gsap from 'gsap'
 import { useControls } from 'leva'
-import { useEffect, useRef } from 'react'
+import { Component, Suspense, useEffect, useRef, type ReactNode } from 'react'
 import * as THREE from 'three'
 
 import { useDebugStore } from './debugStore'
@@ -127,6 +127,45 @@ function GradientCardFace({
       />
     </RoundedBox>
   )
+}
+
+/** Suspense fallback shown in place of a model/image card while its asset
+ * (a multi-MB glb, for the heavier models) is still downloading, so a slow
+ * card reads as "loading" instead of leaving an empty gap in the row, and
+ * doesn't block the rest of the scene from appearing. Plain box, no texture
+ * work, since this is meant to disappear the moment the real content lands. */
+function CardLoadingFallback({ colorA }: { colorA: string }) {
+  return (
+    <RoundedBox args={[CARD_WIDTH, CARD_HEIGHT, 0.05]} radius={0.045} smoothness={4}>
+      <meshStandardMaterial color={colorA} roughness={0.65} metalness={0.04} transparent opacity={0.35} />
+    </RoundedBox>
+  )
+}
+
+/** Catches a failed model/texture fetch (a Vercel Blob hiccup, a bad
+ * network, ...) so it degrades to this one card's placeholder instead of
+ * crashing the whole Canvas: `useGLTF`/`useTexture` rethrow a load failure
+ * as a render error once their promise rejects, and with no boundary
+ * anywhere in the tree that took down every card at once, not just this one. */
+class ModelErrorBoundary extends Component<
+  { colorA: string; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error: unknown) {
+    // eslint-disable-next-line no-console
+    console.error('[CardItem] model/texture failed to load:', error)
+  }
+
+  render() {
+    if (this.state.failed) return <CardLoadingFallback colorA={this.props.colorA} />
+    return this.props.children
+  }
 }
 
 export default function CardItem({
@@ -275,72 +314,76 @@ export default function CardItem({
         document.body.style.cursor = 'auto'
       }}
     >
-      {item.type === 'model' && item.modelPath ? (
-        <VaultSceneModel
-          modelUrl={item.modelPath}
-          focused={focused}
-          scale={VAULT_SCALE}
-          label={item.title}
-        />
-      ) : item.type === 'figma' && item.modelPath ? (
-        <FigmaStackModel
-          modelUrl={item.modelPath}
-          focused={focused}
-          scale={VAULT_SCALE}
-          label={item.title}
-        />
-      ) : item.type === 'nodegraph' && item.modelPath ? (
-        <NodeGraphModel
-          modelUrl={item.modelPath}
-          focused={focused}
-          scale={VAULT_SCALE}
-          label={item.title}
-        />
-      ) : item.type === 'dice' && item.modelPath ? (
-        <DiceModel
-          modelUrl={item.modelPath}
-          focused={focused}
-          scale={VAULT_SCALE}
-          label={item.title}
-        />
-      ) : item.type === 'crate' && item.modelPath ? (
-        <CrateModel
-          modelUrl={item.modelPath}
-          focused={focused}
-          scale={VAULT_SCALE}
-          label={item.title}
-        />
-      ) : item.type === 'smartphone' && item.modelPath ? (
-        <PhoneModel
-          modelUrl={item.modelPath}
-          screenImageUrl={item.screenImagePath}
-          screenImageAspect={item.screenImageAspect}
-          focused={focused}
-          scale={VAULT_SCALE}
-          label={item.title}
-        />
-      ) : item.type === 'monitor' && item.modelPath ? (
-        <MonitorModel
-          modelUrl={item.modelPath}
-          screenImageUrl={item.screenImagePath}
-          focused={focused}
-          scale={VAULT_SCALE}
-          label={item.title}
-        />
-      ) : item.imagePath ? (
-        <TiltGroup focused={focused}>
-          <ImageCardFace
-            imagePath={item.imagePath}
-            imageAspect={item.imageAspect}
-            colorA={item.colorA}
-            matRef={cardMatRef}
-          />
-        </TiltGroup>
-      ) : (
-        <TiltGroup focused={focused}>
-          <GradientCardFace colorA={item.colorA} colorB={item.colorB} matRef={cardMatRef} />
-        </TiltGroup>
-      )}
+      <ModelErrorBoundary colorA={item.colorA}>
+        <Suspense fallback={<CardLoadingFallback colorA={item.colorA} />}>
+          {item.type === 'model' && item.modelPath ? (
+            <VaultSceneModel
+              modelUrl={item.modelPath}
+              focused={focused}
+              scale={VAULT_SCALE}
+              label={item.title}
+            />
+          ) : item.type === 'figma' && item.modelPath ? (
+            <FigmaStackModel
+              modelUrl={item.modelPath}
+              focused={focused}
+              scale={VAULT_SCALE}
+              label={item.title}
+            />
+          ) : item.type === 'nodegraph' && item.modelPath ? (
+            <NodeGraphModel
+              modelUrl={item.modelPath}
+              focused={focused}
+              scale={VAULT_SCALE}
+              label={item.title}
+            />
+          ) : item.type === 'dice' && item.modelPath ? (
+            <DiceModel
+              modelUrl={item.modelPath}
+              focused={focused}
+              scale={VAULT_SCALE}
+              label={item.title}
+            />
+          ) : item.type === 'crate' && item.modelPath ? (
+            <CrateModel
+              modelUrl={item.modelPath}
+              focused={focused}
+              scale={VAULT_SCALE}
+              label={item.title}
+            />
+          ) : item.type === 'smartphone' && item.modelPath ? (
+            <PhoneModel
+              modelUrl={item.modelPath}
+              screenImageUrl={item.screenImagePath}
+              screenImageAspect={item.screenImageAspect}
+              focused={focused}
+              scale={VAULT_SCALE}
+              label={item.title}
+            />
+          ) : item.type === 'monitor' && item.modelPath ? (
+            <MonitorModel
+              modelUrl={item.modelPath}
+              screenImageUrl={item.screenImagePath}
+              focused={focused}
+              scale={VAULT_SCALE}
+              label={item.title}
+            />
+          ) : item.imagePath ? (
+            <TiltGroup focused={focused}>
+              <ImageCardFace
+                imagePath={item.imagePath}
+                imageAspect={item.imageAspect}
+                colorA={item.colorA}
+                matRef={cardMatRef}
+              />
+            </TiltGroup>
+          ) : (
+            <TiltGroup focused={focused}>
+              <GradientCardFace colorA={item.colorA} colorB={item.colorB} matRef={cardMatRef} />
+            </TiltGroup>
+          )}
+        </Suspense>
+      </ModelErrorBoundary>
     </group>
   )
 }

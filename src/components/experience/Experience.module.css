@@ -277,13 +277,16 @@
   position: absolute;
   left: 50%;
   bottom: 66px;
+  /* Horizontal centering (xPercent: -50) plus the entrance/crossfade y are
+     both owned by GSAP (see Experience.tsx) once mounted, so they stay
+     composed into a single transform instead of one clobbering the other;
+     this is just the pre-JS/no-JS resting position. */
   transform: translate(-50%, 0);
   text-align: center;
   z-index: 10;
   pointer-events: none;
   max-width: 560px;
   padding: 0 24px;
-  animation: riseIn 650ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .category {
@@ -437,17 +440,6 @@
    Desktop keeps its permanently pinned `.bottomBar` instead. */
 .mobileFooter {
   display: none;
-}
-
-@keyframes riseIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 10px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
 }
 
 @media (min-width: 721px) and (max-width: 1024px) {

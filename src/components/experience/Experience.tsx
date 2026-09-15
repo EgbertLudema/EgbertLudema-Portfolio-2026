@@ -70,12 +70,58 @@ function DebugPanel({ store }: { store: ReturnType<typeof useCreateStore> }) {
 }
 
 const NAV_LOCK_MS = 750
-const WHEEL_THRESHOLD = 45
+// How long to wait after the last wheel event before treating the scroll
+// gesture as "released" and snapping, same as lifting a finger/mouse off a
+// drag: a trackpad's inertial scroll keeps sending smaller and smaller
+// events for a while, so this only needs to bridge the gap between them,
+// not match how long the whole gesture visually takes to decay.
+const WHEEL_IDLE_MS = 150
+// Scales a wheel event's raw deltaY/X down before it's added to the same
+// drag distance a pointer/touch gesture accumulates: a wheel notch or
+// trackpad tick reports a much larger delta than the equivalent finger
+// movement would, which read as a much faster, twitchier scroll than a drag.
+const WHEEL_SENSITIVITY = 0.6
+// How far past the first/last card the row can be pulled, in card-widths,
+// no matter how hard or how long the gesture keeps pulling: the resistance
+// curve below approaches this asymptotically rather than hitting it as a
+// hard wall, so the give itself feels soft, not just short.
+const MAX_OVERSCROLL_CARDS = 0.3
 const MAX_CANVAS_RECOVERIES = 5
 // Pixels per second the travel dot flies at, kept constant regardless of a
 // leg's direction so a mostly-horizontal hop (a big title-length jump)
 // doesn't visibly outrun a mostly-vertical one.
 const DOT_SPEED = 550
+
+/** Dampens a raw (unresisted) drag distance once it would carry the row
+ * past the first or last card, so pulling further keeps giving a little
+ * but with steeply diminishing returns instead of scrolling on forever.
+ * Mutates `isOverscrolledRef` as a side effect so callers can tell whether
+ * the *current* position is past a bound, for picking a bouncier settle
+ * ease on release (see Row's settle tween in Scene.tsx). */
+function applyOverscrollResistance(
+  rawPx: number,
+  activeIndex: number,
+  itemCount: number,
+  isOverscrolledRef: React.RefObject<boolean>,
+): number {
+  const rawCardUnits = rawPx / DRAG_PIXELS_PER_CARD
+  const virtualIndex = activeIndex + rawCardUnits
+  const maxIndex = itemCount - 1
+
+  let overshoot = 0
+  if (virtualIndex < 0) overshoot = -virtualIndex
+  else if (virtualIndex > maxIndex) overshoot = virtualIndex - maxIndex
+
+  isOverscrolledRef.current = overshoot > 0
+  if (overshoot === 0) return rawPx
+
+  // Hyperbolic falloff: resisted -> MAX_OVERSCROLL_CARDS as overshoot grows,
+  // rather than clamping outright, so the last bit of give tapers off
+  // smoothly instead of the drag suddenly refusing to move any further.
+  const resisted = (MAX_OVERSCROLL_CARDS * overshoot) / (overshoot + MAX_OVERSCROLL_CARDS)
+  const clampedCardUnits = virtualIndex < 0 ? -resisted : maxIndex - activeIndex + resisted
+  return clampedCardUnits * DRAG_PIXELS_PER_CARD
+}
 
 export type ContactInfo = {
   email: string
@@ -86,10 +132,15 @@ export default function Experience({
   items,
   locale,
   contact,
+  onReady,
 }: {
   items: ExperienceItem[]
   locale: Locale
   contact: ContactInfo
+  /** Fired once the scene has an actual rendered frame on screen (or,
+   * immediately, if there's no scene to render at all) so the caller can
+   * dismiss its loading screen. See Scene's own onReady. */
+  onReady?: () => void
 }) {
   const t = getDictionary(locale)
   const year = new Date().getFullYear()
@@ -103,15 +154,25 @@ export default function Experience({
   const menuOpenRef = useRef(false)
   const activeIndexRef = useRef(activeIndex)
   const lockRef = useRef(false)
-  const wheelAccum = useRef(0)
-  // Shared by touch (finger) and pointer (mouse/pen) drag: both feed the
-  // same live-follow + snap system, see Row's useFrame in Scene.tsx.
+  const wheelIdleTimeoutRef = useRef<number | null>(null)
+  // Shared by touch (finger), pointer (mouse/pen) drag, and now wheel: all
+  // three feed the same live-follow + snap system, see Row's useFrame in
+  // Scene.tsx.
   const dragStart = useRef<{ x: number; y: number } | null>(null)
   // Positive = dragged toward "next" (finger/cursor moving left or up),
   // whichever axis is currently dominant, letting the same gesture read as
   // either a horizontal swipe or a vertical scroll, since both should
   // navigate.
   const dragForwardPx = useRef(0)
+  // Wheel-only: the true, unresisted running total (wheel deltas arrive
+  // incrementally, unlike a pointer/touch's absolute position-vs-start
+  // delta), so resistance is always computed from the real distance rather
+  // than compounding on top of an already-resisted value.
+  const wheelRawForwardPx = useRef(0)
+  // Whether the row is currently pulled past the first/last card, set as a
+  // side effect of applyOverscrollResistance: read on release to pick a
+  // bouncier settle ease, see Row's settle tween in Scene.tsx.
+  const isOverscrolledRef = useRef(false)
   const isDraggingRef = useRef(false)
   const recoveryCountRef = useRef(0)
   const stageRef = useRef<HTMLElement>(null)
@@ -124,6 +185,18 @@ export default function Experience({
   const travelDotRef = useRef<HTMLSpanElement>(null)
   const dotRefs = useRef<(HTMLSpanElement | null)[]>([])
   const prevActiveIndexRef = useRef(activeIndex)
+
+  // Which item's title/category/description is live-tracked as "nearest"
+  // while scrolling/dragging (updates continuously, before a card is
+  // actually committed), and which one is currently painted in the
+  // bottomCenter block (lags behind displayIndex by one crossfade-out, so
+  // the old title finishes fading before the new one swaps in). See the
+  // effects below and bottomCenterRef's crossfade.
+  const [displayIndex, setDisplayIndex] = useState(activeIndex)
+  const [renderedIndex, setRenderedIndex] = useState(activeIndex)
+  const displayIndexRef = useRef(activeIndex)
+  const bottomCenterRef = useRef<HTMLDivElement>(null)
+  const bottomCenterTweenRef = useRef<gsap.core.Tween | null>(null)
 
   const handleContextLost = useCallback(() => {
     if (recoveryCountRef.current >= MAX_CANVAS_RECOVERIES) {
@@ -178,6 +251,88 @@ export default function Experience({
   }, [activeIndex])
 
   useEffect(() => {
+    // Not dragging: displayIndex should always match whatever was actually
+    // committed (a settled drag/wheel release via jumpTo, or a keyboard
+    // step), rather than trusting the rAF loop below, which only runs
+    // while `dragging` is true and so misses commits that never dragged at
+    // all (arrow keys, clicking a list item).
+    if (dragging) return
+    displayIndexRef.current = activeIndex
+    setDisplayIndex(activeIndex)
+  }, [activeIndex, dragging])
+
+  useEffect(() => {
+    // Live-tracks which card is currently nearest while a drag/wheel/touch
+    // gesture is in progress, using the exact same rounding CardItem and
+    // endDrag use to decide the "nearest" card from accumulated drag
+    // distance, so the title swaps at the same moment a card's focus does
+    // rather than only once the gesture ends and commits.
+    if (!dragging) return
+    let raf = 0
+    const tick = () => {
+      // endDrag() flips this ref synchronously, immediately, the instant a
+      // gesture ends - well before React re-renders with dragging=false and
+      // actually runs this effect's cleanup below. Without this check, a
+      // frame that was already queued can still fire in that gap and read
+      // dragForwardPx after endDrag has already reset it to 0 but before
+      // activeIndexRef has caught up to the just-committed index, computing
+      // a bogus "liveIndex" from stale/zeroed inputs and yanking the title
+      // back to the old card for a frame before the commit effect corrects
+      // it - the exact flicker this guard closes.
+      if (!isDraggingRef.current) return
+      const liveIndex = Math.max(
+        0,
+        Math.min(
+          items.length - 1,
+          activeIndexRef.current + Math.round(dragForwardPx.current / DRAG_PIXELS_PER_CARD),
+        ),
+      )
+      if (liveIndex !== displayIndexRef.current) {
+        displayIndexRef.current = liveIndex
+        setDisplayIndex(liveIndex)
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [dragging, items.length])
+
+  useEffect(() => {
+    // Crossfades the bottomCenter block to whatever displayIndex just
+    // became: fades the current text out, swaps the rendered item once
+    // it's invisible (renderedIndex, read by the JSX below), then the
+    // effect keyed on renderedIndex fades the new text back in. Restarting
+    // (rather than queuing) on a fast run of index changes means a quick
+    // flick through several cards only shows the one it actually settles
+    // near for a moment, not every card it technically passed through.
+    if (displayIndex === renderedIndex) return
+    const el = bottomCenterRef.current
+    if (!el) {
+      setRenderedIndex(displayIndex)
+      return
+    }
+    bottomCenterTweenRef.current?.kill()
+    bottomCenterTweenRef.current = gsap.to(el, {
+      opacity: 0,
+      y: 8,
+      duration: 0.15,
+      ease: 'power2.in',
+      onComplete: () => setRenderedIndex(displayIndex),
+    })
+  }, [displayIndex, renderedIndex])
+
+  useEffect(() => {
+    const el = bottomCenterRef.current
+    if (!el) return
+    bottomCenterTweenRef.current?.kill()
+    bottomCenterTweenRef.current = gsap.fromTo(
+      el,
+      { opacity: 0, y: 10, xPercent: -50 },
+      { opacity: 1, y: 0, xPercent: -50, duration: 0.28, ease: 'power2.out' },
+    )
+  }, [renderedIndex])
+
+  useEffect(() => {
     const query = window.matchMedia('(max-width: 720px)')
     const sync = () => {
       isMobileRef.current = query.matches
@@ -188,18 +343,6 @@ export default function Experience({
   }, [])
 
   useEffect(() => {
-    const onWheel = (event: WheelEvent) => {
-      if (menuOpenRef.current) return
-      event.preventDefault()
-      if (lockRef.current) return
-      const delta = Math.abs(event.deltaY) > Math.abs(event.deltaX) ? event.deltaY : event.deltaX
-      wheelAccum.current += delta
-      if (Math.abs(wheelAccum.current) > WHEEL_THRESHOLD) {
-        step(wheelAccum.current > 0 ? 1 : -1)
-        wheelAccum.current = 0
-      }
-    }
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && menuOpenRef.current) {
         setMenuOpen(false)
@@ -238,7 +381,12 @@ export default function Experience({
       const dy = dragStart.current.y - y
       const horizontalDominant = Math.abs(dx) > Math.abs(dy)
       if (isTouch && isMobileRef.current && !horizontalDominant) return
-      dragForwardPx.current = horizontalDominant ? dx : dy
+      dragForwardPx.current = applyOverscrollResistance(
+        horizontalDominant ? dx : dy,
+        activeIndexRef.current,
+        items.length,
+        isOverscrolledRef,
+      )
     }
 
     const endDrag = () => {
@@ -249,14 +397,57 @@ export default function Experience({
       setReleaseTick((tick) => tick + 1)
       if (menuOpenRef.current || !wasDragging) {
         dragForwardPx.current = 0
+        wheelRawForwardPx.current = 0
         return
       }
+      // Rounds the already-resisted (not raw) distance: an overscroll past
+      // the last/first card asymptotically approaches, but should never
+      // reach, a full extra card of travel, so this always rounds back to
+      // the boundary index itself rather than ever proposing one past it.
       const cardsMoved = Math.round(dragForwardPx.current / DRAG_PIXELS_PER_CARD)
       dragForwardPx.current = 0
+      wheelRawForwardPx.current = 0
       if (cardsMoved !== 0) {
         const target = Math.max(0, Math.min(items.length - 1, activeIndexRef.current + cardsMoved))
         jumpTo(target)
       }
+    }
+
+    // Feeds the wheel gesture into the exact same live-follow + snap session
+    // as a pointer/touch drag, rather than the old "accumulate, then jump a
+    // whole card the instant a threshold is crossed" behavior: that read as
+    // a hard snap per notch instead of a smooth, continuous scroll. A wheel
+    // has no absolute start position the way a pointer/touch does, so this
+    // fakes one with a sentinel just to mark a session as active for
+    // endDrag's own `wasDragging` check.
+    const onWheel = (event: WheelEvent) => {
+      if (menuOpenRef.current) return
+      event.preventDefault()
+      const delta = Math.abs(event.deltaY) > Math.abs(event.deltaX) ? event.deltaY : event.deltaX
+      if (dragStart.current === null) {
+        dragStart.current = { x: 0, y: 0 }
+        dragForwardPx.current = 0
+        wheelRawForwardPx.current = 0
+        isDraggingRef.current = true
+        setDragging(true)
+      }
+      wheelRawForwardPx.current += delta * WHEEL_SENSITIVITY
+      dragForwardPx.current = applyOverscrollResistance(
+        wheelRawForwardPx.current,
+        activeIndexRef.current,
+        items.length,
+        isOverscrolledRef,
+      )
+      if (wheelIdleTimeoutRef.current !== null) {
+        window.clearTimeout(wheelIdleTimeoutRef.current)
+      }
+      // No native "wheel end" event exists, so idle-detect it: keep pushing
+      // this timeout out on every event, and once it actually fires,
+      // nothing has arrived in a while, meaning the gesture is over.
+      wheelIdleTimeoutRef.current = window.setTimeout(() => {
+        wheelIdleTimeoutRef.current = null
+        endDrag()
+      }, WHEEL_IDLE_MS)
     }
 
     const onTouchStart = (event: TouchEvent) => {
@@ -306,6 +497,7 @@ export default function Experience({
     window.addEventListener('pointercancel', onPointerCancel)
 
     return () => {
+      if (wheelIdleTimeoutRef.current !== null) window.clearTimeout(wheelIdleTimeoutRef.current)
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('touchstart', onTouchStart)
@@ -400,6 +592,22 @@ export default function Experience({
   }, [activeIndex, getDotPosition])
 
   const active = items[activeIndex]
+  // The bottomCenter block reads from this instead of `active` directly, so
+  // its title/category/description only swap once the crossfade-out above
+  // has actually hidden the old text (see renderedIndex's effects).
+  const displayedItem = items[renderedIndex] ?? active
+
+  useEffect(() => {
+    // Nothing to render, so there's no Scene to wait on: dismiss the
+    // loading screen immediately rather than leaving it stuck forever.
+    if (!active) onReady?.()
+  }, [active, onReady])
+
+  useEffect(() => {
+    // WebGL failed every recovery attempt before ever rendering a frame
+    // (see handleContextLost): same reasoning, nothing left to wait on.
+    if (canvasGaveUp) onReady?.()
+  }, [canvasGaveUp, onReady])
 
   // Shared by the pinned desktop footer, the hamburger menu's footer, and
   // the mobile scroll-to-reveal footer below: same mail/socials content in
@@ -461,8 +669,10 @@ export default function Experience({
                 activeIndex={activeIndex}
                 onSelect={jumpTo}
                 onContextLost={handleContextLost}
+                onReady={onReady}
                 dragForwardPx={dragForwardPx}
                 isDragging={isDraggingRef}
+                isOverscrolled={isOverscrolledRef}
                 releaseTick={releaseTick}
               />
             )}
@@ -561,16 +771,16 @@ export default function Experience({
 
           <div className={styles.bottomLeft}>
             <span className={styles.index}>
-              {String(activeIndex + 1).padStart(2, '0')} / {String(items.length).padStart(2, '0')}
+              {String(renderedIndex + 1).padStart(2, '0')} / {String(items.length).padStart(2, '0')}
             </span>
             <span>{t.home.scrollHint}</span>
           </div>
 
-          <div className={styles.bottomCenter} key={active.id}>
-            <p className={styles.category}>{active.category}</p>
-            <h1 className={styles.title}>{active.title}</h1>
-            <p className={styles.description}>{active.description}</p>
-            <TransitionLink href={`/projects/${active.slug}`} className={styles.viewProject}>
+          <div className={styles.bottomCenter} ref={bottomCenterRef}>
+            <p className={styles.category}>{displayedItem.category}</p>
+            <h1 className={styles.title}>{displayedItem.title}</h1>
+            <p className={styles.description}>{displayedItem.description}</p>
+            <TransitionLink href={`/projects/${displayedItem.slug}`} className={styles.viewProject}>
               {t.home.viewProject}
               <span aria-hidden="true">&rarr;</span>
             </TransitionLink>

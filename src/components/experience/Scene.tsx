@@ -19,12 +19,26 @@ export const SPACING = 1.3
 // only ever used as a feel constant).
 export const DRAG_PIXELS_PER_CARD = 140
 
+// Entrance drop for the 3D model cards on first mount: how high above rest
+// each one starts, and how long it takes to land.
+const FALL_HEIGHT = 3.5
+const FALL_DURATION = 1.4
+// Gap between each card's drop starting, so they land one after another
+// left to right instead of all landing at once.
+const FALL_STAGGER = 0.14
+// Roughly matches HomeLoadingScreen's own reveal (its shrink starts as soon
+// as this Scene's first frame is on screen and takes about a second), so
+// the drop is timed to play out once the loading cover has actually
+// cleared rather than mostly finishing underneath it, unseen.
+const FALL_BASE_DELAY = 0.9
+
 function Row({
   items,
   activeIndex,
   onSelect,
   dragForwardPx,
   isDragging,
+  isOverscrolled,
   releaseTick,
 }: {
   items: ExperienceItem[]
@@ -32,16 +46,27 @@ function Row({
   onSelect: (index: number) => void
   dragForwardPx: React.RefObject<number>
   isDragging: React.RefObject<boolean>
+  isOverscrolled: React.RefObject<boolean>
   releaseTick: number
 }) {
   const groupRef = useRef<THREE.Group>(null)
+  const cardWrapRefs = useRef<(THREE.Group | null)[]>([])
 
   useEffect(() => {
     if (!groupRef.current) return
+    // Consumed once per settle, then cleared: a later settle triggered by
+    // something that never dragged at all (an arrow key, a list click)
+    // should never accidentally inherit a stale overscroll from before.
+    const bounced = isOverscrolled.current
+    isOverscrolled.current = false
     gsap.to(groupRef.current.position, {
       x: -activeIndex * SPACING,
-      duration: 1,
-      ease: 'power3.out',
+      duration: bounced ? 0.9 : 1,
+      // Snapping back from an overscroll reads as a physical rebound, so it
+      // gets the same springy ease as the fall-in below; a normal card-to-
+      // card settle keeps the plain deceleration, since it's not "bouncing
+      // back" from anywhere.
+      ease: bounced ? 'elastic.out(1, 0.55)' : 'power3.out',
     })
     // releaseTick isn't read here, but bumping it (on every drag release,
     // even one that snaps back to the same card) needs to re-trigger this
@@ -49,6 +74,35 @@ function Row({
     // leaves the row sitting at a live-follow offset that has to ease back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, releaseTick])
+
+  useEffect(() => {
+    // Only the 3D model cards drop in (matches item.modelPath, the same
+    // condition CardItem itself branches on to render a model rather than
+    // an image/gradient face); plain image cards just sit in place. Runs
+    // once per Row mount (initial load, or a fresh mount after a WebGL
+    // context-loss recovery), not on every items/activeIndex change.
+    items.forEach((item, index) => {
+      if (!item.modelPath) return
+      const wrap = cardWrapRefs.current[index]
+      if (!wrap) return
+      gsap.fromTo(
+        wrap.position,
+        { y: FALL_HEIGHT },
+        {
+          y: 0,
+          duration: FALL_DURATION,
+          delay: FALL_BASE_DELAY + index * FALL_STAGGER,
+          // bounce.out's sharp, discrete impacts read as mechanical rather
+          // than physical. elastic.out is one continuous, decaying spring
+          // curve instead, which is what actually looks "smooth" here: low
+          // amplitude (1) keeps the overshoot subtle, and the period (0.5)
+          // keeps the settle quick rather than jittering for multiple cycles.
+          ease: 'elastic.out(1, 0.5)',
+        },
+      )
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useFrame(() => {
     if (!groupRef.current || !isDragging.current) return
@@ -63,7 +117,13 @@ function Row({
   return (
     <group ref={groupRef}>
       {items.map((item, index) => (
-        <group key={item.id} position={[index * SPACING, 0, 0]}>
+        <group
+          key={item.id}
+          position={[index * SPACING, 0, 0]}
+          ref={(el) => {
+            cardWrapRefs.current[index] = el
+          }}
+        >
           <CardItem
             item={item}
             focused={index === activeIndex}
@@ -164,16 +224,23 @@ export default function Scene({
   activeIndex,
   onSelect,
   onContextLost,
+  onReady,
   dragForwardPx,
   isDragging,
+  isOverscrolled,
   releaseTick,
 }: {
   items: ExperienceItem[]
   activeIndex: number
   onSelect: (index: number) => void
   onContextLost?: () => void
+  /** Fired once the Canvas has an actual rendered frame on screen, so a
+   * caller-owned loading screen can dismiss itself instead of guessing at a
+   * fixed delay. See HomeLoadingScreen. */
+  onReady?: () => void
   dragForwardPx: React.RefObject<number>
   isDragging: React.RefObject<boolean>
+  isOverscrolled: React.RefObject<boolean>
   releaseTick: number
 }) {
   const frameCountRef = useRef(0)
@@ -253,6 +320,13 @@ export default function Scene({
           // eslint-disable-next-line no-console
           console.info('[Scene] WebGL context restored')
         })
+
+        // Two rAF ticks rather than firing right here: onCreated runs before
+        // the renderer has actually drawn anything, so calling straight
+        // through would dismiss the loading screen a frame or two before
+        // real pixels are on screen. One tick to let R3F's first render
+        // commit, a second so that frame has actually been presented.
+        requestAnimationFrame(() => requestAnimationFrame(() => onReady?.()))
       }}
     >
       <ResponsiveCamera camera={camera} />
@@ -268,6 +342,7 @@ export default function Scene({
         onSelect={onSelect}
         dragForwardPx={dragForwardPx}
         isDragging={isDragging}
+        isOverscrolled={isOverscrolled}
         releaseTick={releaseTick}
       />
     </Canvas>
