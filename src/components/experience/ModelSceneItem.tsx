@@ -89,7 +89,7 @@ const DEFAULT_MODEL_TUNING: ModelTuning = {
 // alone when adjusting the vault, and vice versa.
 const VAULT_MODEL_TUNING: ModelTuning = {
   ...DEFAULT_MODEL_TUNING,
-  targetSize: 0.8,
+  targetSize: 1.15,
   // The model sits centred on its own bounding-box middle. The card-exit
   // alignment is tuned on the cards' side instead, via MEMORY_VERTICAL_BASELINE
   // in vaultHeroLogic.ts. This offset is a *second*, independent lever: it
@@ -97,7 +97,7 @@ const VAULT_MODEL_TUNING: ModelTuning = {
   // slot. Negative = down. The model and the memory cards are siblings under
   // outerRef, so this is the only way to move the vault body alone without
   // dragging the card orbit with it.
-  verticalOffset: -0.65,
+  verticalOffset: 0.75,
   rotationY: 0,
   ambientSway: true,
 }
@@ -158,7 +158,6 @@ export default function VaultSceneModel({
   focused,
   scale = 1,
   label,
-  entranceSettled,
 }: {
   modelUrl: string
   focused: boolean
@@ -167,17 +166,6 @@ export default function VaultSceneModel({
    * every model gets independent sliders instead of sharing one "vault" or
    * "other models" bucket with every other project of the same kind. */
   label: string
-  /** Flips once from false to true after the card row's fall-in entrance
-   * has finished moving (see Row in Scene.tsx). This is the only model that
-   * measures its own centering in world space (needed below to detect the
-   * vault's door mesh via a plain, untransformed Box3), so if the GLTF
-   * finishes loading while an ancestor is still mid-drop, the one-time
-   * measurement effect below bakes in an offset based on that transient
-   * position - permanently wrong even once the drop settles. Included in
-   * that effect's own dependency list, this makes it re-run exactly once
-   * more after the drop is over, self-correcting the stale measurement with
-   * one taken while every ancestor is finally holding still. */
-  entranceSettled: boolean
 }) {
   const { scene } = useGLTF(modelUrl)
   const { clock } = useThree()
@@ -272,43 +260,19 @@ export default function VaultSceneModel({
       if (child.name === 'VaultNumbers') numbersMesh = child
     })
 
-    const hasDoor = Boolean(door)
-    // The vault's measurement stays exactly as before (its offsets were
-    // tuned against it); other models use the ancestor-independent version
-    // so their centering is correct regardless of outerRef's base rotation.
-    //
-    // Box3.setFromObject(scene) measures in WORLD space, which includes
-    // every ancestor's current matrix: outerRef's fixed base rotation,
-    // modelWrapRef's own scale/position/rotation (the very values this
-    // effect is about to compute FROM that measurement), all the way up.
-    // Two separate ways that can be stale/wrong at the moment this runs:
-    //  1. modelWrapRef still holding a *previous* effect run's scale (this
-    //     effect can fire twice on the same cached scene, see the
-    //     closedRotationY guard below, already known to happen). Dividing
-    //     targetSize by an already-scaled measurement produces a wildly
-    //     wrong result.
-    //  2. On a cold first paint (fresh load/hard refresh, before Three.js's
-    //     renderer has run even one frame), matrixWorld on outerRef and
-    //     everything above it can still be sitting at its default identity
-    //     value, never having been computed from the actual rotation/
-    //     position props. A warm client-side navigation has usually
-    //     already rendered a frame by the time this effect fires, which is
-    //     why the bug reads as "wrong on hard refresh, fine after
-    //     navigating away and back".
-    // updateWorldMatrix(true, true) (unlike updateMatrixWorld, which only
-    // pushes downward using whatever the parent chain already holds) walks
-    // *up* through every ancestor first, forcing each one's matrix fresh
-    // regardless of render timing, then back down through this node and its
-    // children. Resetting to identity here and calling it covers both
-    // cases, independent of how many times this effect has run or whether
-    // any frame has rendered yet.
-    if (hasDoor && modelWrapRef.current) {
-      modelWrapRef.current.scale.set(1, 1, 1)
-      modelWrapRef.current.position.set(0, 0, 0)
-      modelWrapRef.current.rotation.set(0, 0, 0)
-      modelWrapRef.current.updateWorldMatrix(true, true)
-    }
-    const box = hasDoor ? new THREE.Box3().setFromObject(scene) : getLocalBoundingBox(scene)
+    // Measured purely relative to `scene` itself (see getLocalBoundingBox),
+    // ignoring every ancestor's transform: outerRef's base rotation,
+    // modelWrapRef's own scale/position from a previous run, and whether
+    // any of that has even rendered a frame yet on a cold first paint are
+    // all irrelevant to it. The vault used to measure in WORLD space
+    // instead (Box3.setFromObject(scene)), which is contaminated by all of
+    // that - wrong the instant it ran while an ancestor was still mid
+    // fall-in-drop or sitting at its default identity matrix pre-first-
+    // frame, needing a second, corrective measurement once the drop
+    // settled that visibly snapped the model to its right size/position a
+    // couple seconds in. Local measurement sidesteps the whole problem:
+    // it's correct on the very first run.
+    const box = getLocalBoundingBox(scene)
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())
     const maxDimension = Math.max(size.x, size.y, size.z) || 1
@@ -368,7 +332,6 @@ export default function VaultSceneModel({
     tuning.rotationX,
     tuning.rotationY,
     tuning.rotationZ,
-    entranceSettled,
   ])
 
   const triggerClose = (elapsed: number) => {

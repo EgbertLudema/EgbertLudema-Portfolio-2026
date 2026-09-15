@@ -28,6 +28,9 @@ const CARD_HEIGHT = 0.85
 const CARD_ASPECT = CARD_WIDTH / CARD_HEIGHT
 const VAULT_SCALE = CARD_HEIGHT * 0.68
 const IMAGE_INSET = 0.88
+// Matches ROW_FOLLOW_LERP in Scene.tsx, so a card's own focus easing tracks
+// the row's position easing at the same rate.
+const PROXIMITY_LERP = 0.3
 
 /** An uploaded photo, contained (never cropped) within the same fixed card
  * frame every other card uses, so the row stays visually consistent
@@ -178,7 +181,6 @@ export default function CardItem({
   releaseTick,
   spacing,
   dragPixelsPerCard,
-  entranceSettled,
 }: {
   item: ExperienceItem
   focused: boolean
@@ -190,11 +192,6 @@ export default function CardItem({
   releaseTick: number
   spacing: number
   dragPixelsPerCard: number
-  /** Flips once the entrance fall-in (see Row in Scene.tsx) has finished
-   * moving every card. Only forwarded to VaultSceneModel, whose centering
-   * math is the one model measurement that's sensitive to this wrapper's
-   * transient fall position - see its own prop doc. */
-  entranceSettled: boolean
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const cardMatRef = useRef<THREE.MeshStandardMaterial>(null)
@@ -254,6 +251,12 @@ export default function CardItem({
   }, [focused, tuning, releaseTick])
 
   const wasDraggingRef = useRef(false)
+  // Smoothed toward the raw proximity value each frame (see ROW_FOLLOW_LERP
+  // in Scene.tsx for the same reasoning): a wheel event's raw drag delta
+  // moves in large, discrete chunks, so driving scale/rotation straight off
+  // it every frame made a focusing/unfocusing card visibly pop between
+  // steps instead of easing.
+  const smoothProximityRef = useRef(0)
 
   useFrame(() => {
     if (!groupRef.current) return
@@ -278,7 +281,9 @@ export default function CardItem({
     // card's "focus" tracks the same position the row is actually at.
     const dragWorldUnits = (dragForwardPx.current / dragPixelsPerCard) * spacing
     const worldOffset = dragOffsetFromCenter * spacing - dragWorldUnits
-    const proximity = Math.max(0, 1 - Math.abs(worldOffset) / spacing)
+    const rawProximity = Math.max(0, 1 - Math.abs(worldOffset) / spacing)
+    smoothProximityRef.current += (rawProximity - smoothProximityRef.current) * PROXIMITY_LERP
+    const proximity = smoothProximityRef.current
 
     groupRef.current.scale.setScalar(lerp(tuning.unfocusedScale, tuning.focusedScale, proximity))
     groupRef.current.position.y = lerp(0, tuning.focusedPositionY, proximity)
@@ -328,7 +333,6 @@ export default function CardItem({
               focused={focused}
               scale={VAULT_SCALE}
               label={item.title}
-              entranceSettled={entranceSettled}
             />
           ) : item.type === 'figma' && item.modelPath ? (
             <FigmaStackModel

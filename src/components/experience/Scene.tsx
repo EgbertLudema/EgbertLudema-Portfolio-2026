@@ -4,7 +4,7 @@ import { PerspectiveCamera } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import gsap from 'gsap'
 import { useControls } from 'leva'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
 import CardItem from './CardItem'
@@ -12,6 +12,11 @@ import { useDebugStore } from './debugStore'
 import type { ExperienceItem } from './items'
 
 export const SPACING = 1.3
+// Per-frame ease factor the row's live-follow position closes the gap to
+// its target by (at ~60fps, reaches it in a handful of frames): smooths
+// over the large, discrete deltas a wheel event delivers per tick. See the
+// comment at its use site in Row's useFrame below.
+const ROW_FOLLOW_LERP = 0.3
 // How many drag pixels equal one card's worth of travel, for the live
 // follow effect below: tuned against the on-screen card spacing at
 // typical phone widths, not derived from the camera's actual projection
@@ -51,24 +56,6 @@ function Row({
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const cardWrapRefs = useRef<(THREE.Group | null)[]>([])
-  // Flips once every card's fall-in has finished moving (a fixed timer, not
-  // per-card tween callbacks, since it only needs to be "definitely done,"
-  // not exact). The vault's own centering math measures its bounding box in
-  // world space (needed for its door-rig geometry), so if its model finishes
-  // loading while this same wrapper is still mid-drop, that one-time
-  // measurement bakes in an offset based on the wrapper's transient,
-  // mid-animation position - permanently wrong even once the drop settles.
-  // See ModelSceneItem's entranceSettled prop, which re-runs that
-  // measurement once more after this fires, self-correcting it.
-  const [entranceSettled, setEntranceSettled] = useState(false)
-
-  useEffect(() => {
-    const totalFallMs =
-      (FALL_BASE_DELAY + Math.max(items.length - 1, 0) * FALL_STAGGER + FALL_DURATION + 0.4) * 1000
-    const timeout = window.setTimeout(() => setEntranceSettled(true), totalFallMs)
-    return () => window.clearTimeout(timeout)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   useEffect(() => {
     if (!groupRef.current) return
@@ -129,7 +116,16 @@ function Row({
     // released, the effect above takes over from wherever this left off.
     gsap.killTweensOf(groupRef.current.position)
     const dragWorldUnits = (dragForwardPx.current / DRAG_PIXELS_PER_CARD) * SPACING
-    groupRef.current.position.x = -activeIndex * SPACING - dragWorldUnits
+    const targetX = -activeIndex * SPACING - dragWorldUnits
+    // Eased toward the target rather than snapped straight to it: a wheel
+    // event delivers one big chunky delta per tick (unlike pointer/touch,
+    // which arrives as many tiny continuous deltas), so setting position.x
+    // directly here made every wheel tick a visible jump instead of a
+    // glide. This also makes a wheel-idle "gesture end" (see WHEEL_IDLE_MS)
+    // that fires mid-momentum harmless: the settle tween it kicks off below
+    // starts from a position that's already tracking smoothly, rather than
+    // interrupting a hard, instant snap.
+    groupRef.current.position.x += (targetX - groupRef.current.position.x) * ROW_FOLLOW_LERP
   })
 
   return (
@@ -152,7 +148,6 @@ function Row({
             releaseTick={releaseTick}
             spacing={SPACING}
             dragPixelsPerCard={DRAG_PIXELS_PER_CARD}
-            entranceSettled={entranceSettled}
           />
         </group>
       ))}

@@ -75,7 +75,7 @@ const NAV_LOCK_MS = 750
 // drag: a trackpad's inertial scroll keeps sending smaller and smaller
 // events for a while, so this only needs to bridge the gap between them,
 // not match how long the whole gesture visually takes to decay.
-const WHEEL_IDLE_MS = 150
+const WHEEL_IDLE_MS = 220
 // Scales a wheel event's raw deltaY/X down before it's added to the same
 // drag distance a pointer/touch gesture accumulates: a wheel notch or
 // trackpad tick reports a much larger delta than the equivalent finger
