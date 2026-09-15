@@ -4,7 +4,7 @@ import { PerspectiveCamera } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import gsap from 'gsap'
 import { useControls } from 'leva'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 import CardItem from './CardItem'
@@ -51,6 +51,24 @@ function Row({
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const cardWrapRefs = useRef<(THREE.Group | null)[]>([])
+  // Flips once every card's fall-in has finished moving (a fixed timer, not
+  // per-card tween callbacks, since it only needs to be "definitely done,"
+  // not exact). The vault's own centering math measures its bounding box in
+  // world space (needed for its door-rig geometry), so if its model finishes
+  // loading while this same wrapper is still mid-drop, that one-time
+  // measurement bakes in an offset based on the wrapper's transient,
+  // mid-animation position - permanently wrong even once the drop settles.
+  // See ModelSceneItem's entranceSettled prop, which re-runs that
+  // measurement once more after this fires, self-correcting it.
+  const [entranceSettled, setEntranceSettled] = useState(false)
+
+  useEffect(() => {
+    const totalFallMs =
+      (FALL_BASE_DELAY + Math.max(items.length - 1, 0) * FALL_STAGGER + FALL_DURATION + 0.4) * 1000
+    const timeout = window.setTimeout(() => setEntranceSettled(true), totalFallMs)
+    return () => window.clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (!groupRef.current) return
@@ -134,6 +152,7 @@ function Row({
             releaseTick={releaseTick}
             spacing={SPACING}
             dragPixelsPerCard={DRAG_PIXELS_PER_CARD}
+            entranceSettled={entranceSettled}
           />
         </group>
       ))}

@@ -178,6 +178,7 @@ export default function CardItem({
   releaseTick,
   spacing,
   dragPixelsPerCard,
+  entranceSettled,
 }: {
   item: ExperienceItem
   focused: boolean
@@ -189,6 +190,11 @@ export default function CardItem({
   releaseTick: number
   spacing: number
   dragPixelsPerCard: number
+  /** Flips once the entrance fall-in (see Row in Scene.tsx) has finished
+   * moving every card. Only forwarded to VaultSceneModel, whose centering
+   * math is the one model measurement that's sensitive to this wrapper's
+   * transient fall position - see its own prop doc. */
+  entranceSettled: boolean
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const cardMatRef = useRef<THREE.MeshStandardMaterial>(null)
@@ -322,6 +328,7 @@ export default function CardItem({
               focused={focused}
               scale={VAULT_SCALE}
               label={item.title}
+              entranceSettled={entranceSettled}
             />
           ) : item.type === 'figma' && item.modelPath ? (
             <FigmaStackModel

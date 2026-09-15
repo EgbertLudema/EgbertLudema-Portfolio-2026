@@ -119,7 +119,12 @@ function applyOverscrollResistance(
   // rather than clamping outright, so the last bit of give tapers off
   // smoothly instead of the drag suddenly refusing to move any further.
   const resisted = (MAX_OVERSCROLL_CARDS * overshoot) / (overshoot + MAX_OVERSCROLL_CARDS)
-  const clampedCardUnits = virtualIndex < 0 ? -resisted : maxIndex - activeIndex + resisted
+  // Both branches are "the rawCardUnits that would land exactly on the
+  // boundary index, plus a little more past it": missing the `-activeIndex`
+  // term on this first branch meant it resisted back toward wherever the
+  // drag started instead of toward index 0, making index 0 unreachable from
+  // any other starting card.
+  const clampedCardUnits = virtualIndex < 0 ? -activeIndex - resisted : maxIndex - activeIndex + resisted
   return clampedCardUnits * DRAG_PIXELS_PER_CARD
 }
 

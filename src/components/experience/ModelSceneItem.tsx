@@ -158,6 +158,7 @@ export default function VaultSceneModel({
   focused,
   scale = 1,
   label,
+  entranceSettled,
 }: {
   modelUrl: string
   focused: boolean
@@ -166,6 +167,17 @@ export default function VaultSceneModel({
    * every model gets independent sliders instead of sharing one "vault" or
    * "other models" bucket with every other project of the same kind. */
   label: string
+  /** Flips once from false to true after the card row's fall-in entrance
+   * has finished moving (see Row in Scene.tsx). This is the only model that
+   * measures its own centering in world space (needed below to detect the
+   * vault's door mesh via a plain, untransformed Box3), so if the GLTF
+   * finishes loading while an ancestor is still mid-drop, the one-time
+   * measurement effect below bakes in an offset based on that transient
+   * position - permanently wrong even once the drop settles. Included in
+   * that effect's own dependency list, this makes it re-run exactly once
+   * more after the drop is over, self-correcting the stale measurement with
+   * one taken while every ancestor is finally holding still. */
+  entranceSettled: boolean
 }) {
   const { scene } = useGLTF(modelUrl)
   const { clock } = useThree()
@@ -356,6 +368,7 @@ export default function VaultSceneModel({
     tuning.rotationX,
     tuning.rotationY,
     tuning.rotationZ,
+    entranceSettled,
   ])
 
   const triggerClose = (elapsed: number) => {
