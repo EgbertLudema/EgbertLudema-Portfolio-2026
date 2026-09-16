@@ -86,6 +86,15 @@ const WHEEL_SENSITIVITY = 0.6
 // curve below approaches this asymptotically rather than hitting it as a
 // hard wall, so the give itself feels soft, not just short.
 const MAX_OVERSCROLL_CARDS = 0.3
+// How far into the next card a gesture has to travel before releasing
+// commits to it. Deliberately below the half-card a plain Math.round would
+// use: one notch of a typical mouse wheel accumulates ~0.43 cards (100 raw
+// deltaY, scaled by WHEEL_SENSITIVITY, over DRAG_PIXELS_PER_CARD), so a
+// clear single-notch scroll used to fall just short and rubber-band right
+// back to the card it started from. Still sits comfortably above
+// MAX_OVERSCROLL_CARDS, so pulling against the first or last card can
+// never commit past the end of the row.
+const SNAP_COMMIT_CARDS = 0.35
 const MAX_CANVAS_RECOVERIES = 5
 // Pixels per second the travel dot flies at, kept constant regardless of a
 // leg's direction so a mostly-horizontal hop (a big title-length jump)
@@ -126,6 +135,19 @@ function applyOverscrollResistance(
   // any other starting card.
   const clampedCardUnits = virtualIndex < 0 ? -activeIndex - resisted : maxIndex - activeIndex + resisted
   return clampedCardUnits * DRAG_PIXELS_PER_CARD
+}
+
+/** Whole cards a gesture's accumulated (already-resisted) distance should
+ * advance the row by. Shared by the release commit and the live title
+ * readout so the title never names a card the release then declines to
+ * actually move to. */
+function cardsMovedFrom(px: number) {
+  const cards = px / DRAG_PIXELS_PER_CARD
+  const whole = Math.trunc(cards)
+  const fraction = cards - whole
+  if (fraction > SNAP_COMMIT_CARDS) return whole + 1
+  if (fraction < -SNAP_COMMIT_CARDS) return whole - 1
+  return whole
 }
 
 export type ContactInfo = {
@@ -179,6 +201,15 @@ export default function Experience({
   // bouncier settle ease, see Row's settle tween in Scene.tsx.
   const isOverscrolledRef = useRef(false)
   const isDraggingRef = useRef(false)
+  // Which input owns the in-flight gesture. A wheel has no real start
+  // position, so onWheel fakes one at {0, 0} purely to mark a session
+  // active - and `pointermove` is bound to the window unconditionally, so
+  // without this every mouse movement during a wheel scroll fell through
+  // to updateDrag, measured the cursor against that fake origin, and
+  // reported a drag the size of the cursor's distance from the top-left
+  // corner: several cards' worth, always backwards, so the release
+  // committed a jump to the first card.
+  const gestureSourceRef = useRef<'pointer' | 'wheel' | null>(null)
   const recoveryCountRef = useRef(0)
   const stageRef = useRef<HTMLElement>(null)
   // Mirrors the 720px CSS breakpoint where `.stage` switches from a
@@ -287,10 +318,7 @@ export default function Experience({
       if (!isDraggingRef.current) return
       const liveIndex = Math.max(
         0,
-        Math.min(
-          items.length - 1,
-          activeIndexRef.current + Math.round(dragForwardPx.current / DRAG_PIXELS_PER_CARD),
-        ),
+        Math.min(items.length - 1, activeIndexRef.current + cardsMovedFrom(dragForwardPx.current)),
       )
       if (liveIndex !== displayIndexRef.current) {
         displayIndexRef.current = liveIndex
@@ -367,8 +395,17 @@ export default function Experience({
       // swipe, so leave the gesture to native scroll entirely rather than
       // starting a carousel drag that has no visible row to follow.
       if (isMobileRef.current && (stageRef.current?.scrollTop ?? 0) > 8) return
+      // A real grab takes over from any wheel session still winding down,
+      // rather than the two sharing one accumulator: that session's pending
+      // idle timeout would otherwise fire mid-drag and commit a snap.
+      if (wheelIdleTimeoutRef.current !== null) {
+        window.clearTimeout(wheelIdleTimeoutRef.current)
+        wheelIdleTimeoutRef.current = null
+      }
+      gestureSourceRef.current = 'pointer'
       dragStart.current = { x, y }
       dragForwardPx.current = 0
+      wheelRawForwardPx.current = 0
       isDraggingRef.current = true
       setDragging(true)
     }
@@ -382,6 +419,9 @@ export default function Experience({
     // `.stage` touch-action: pan-y swap in Experience.module.css.
     const updateDrag = (x: number, y: number, isTouch: boolean) => {
       if (menuOpenRef.current || !dragStart.current) return
+      // Only a pointer/touch gesture has a real origin to measure against;
+      // see gestureSourceRef.
+      if (gestureSourceRef.current !== 'pointer') return
       const dx = dragStart.current.x - x
       const dy = dragStart.current.y - y
       const horizontalDominant = Math.abs(dx) > Math.abs(dy)
@@ -396,6 +436,11 @@ export default function Experience({
 
     const endDrag = () => {
       const wasDragging = dragStart.current !== null
+      if (wheelIdleTimeoutRef.current !== null) {
+        window.clearTimeout(wheelIdleTimeoutRef.current)
+        wheelIdleTimeoutRef.current = null
+      }
+      gestureSourceRef.current = null
       dragStart.current = null
       isDraggingRef.current = false
       setDragging(false)
@@ -405,11 +450,11 @@ export default function Experience({
         wheelRawForwardPx.current = 0
         return
       }
-      // Rounds the already-resisted (not raw) distance: an overscroll past
-      // the last/first card asymptotically approaches, but should never
-      // reach, a full extra card of travel, so this always rounds back to
+      // Reads the already-resisted (not raw) distance: an overscroll past
+      // the last/first card asymptotically approaches MAX_OVERSCROLL_CARDS,
+      // which sits below SNAP_COMMIT_CARDS, so this always resolves back to
       // the boundary index itself rather than ever proposing one past it.
-      const cardsMoved = Math.round(dragForwardPx.current / DRAG_PIXELS_PER_CARD)
+      const cardsMoved = cardsMovedFrom(dragForwardPx.current)
       dragForwardPx.current = 0
       wheelRawForwardPx.current = 0
       if (cardsMoved !== 0) {
@@ -427,9 +472,13 @@ export default function Experience({
     // endDrag's own `wasDragging` check.
     const onWheel = (event: WheelEvent) => {
       if (menuOpenRef.current) return
+      // A held pointer/touch drag wins: folding wheel deltas into its
+      // absolute position-vs-start distance would just fight the finger.
+      if (gestureSourceRef.current === 'pointer') return
       event.preventDefault()
       const delta = Math.abs(event.deltaY) > Math.abs(event.deltaX) ? event.deltaY : event.deltaX
       if (dragStart.current === null) {
+        gestureSourceRef.current = 'wheel'
         dragStart.current = { x: 0, y: 0 }
         dragForwardPx.current = 0
         wheelRawForwardPx.current = 0
@@ -482,11 +531,13 @@ export default function Experience({
 
     const onPointerUp = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return
+      if (gestureSourceRef.current !== 'pointer') return
       endDrag()
     }
 
     const onPointerCancel = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return
+      if (gestureSourceRef.current !== 'pointer') return
       endDrag()
     }
 

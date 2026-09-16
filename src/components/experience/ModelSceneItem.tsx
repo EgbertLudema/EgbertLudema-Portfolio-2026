@@ -57,11 +57,9 @@ type ModelTuning = {
   rotationY: number
   /** Static roll baked into the model itself. */
   rotationZ: number
-  /** Gentle continuous idle wobble (sway/bob), always on regardless of focus. */
-  ambientSway: boolean
-  /** Base tilt applied to outerRef every frame, before sway/tilt are added. */
+  /** Base tilt applied to outerRef every frame, before the pointer tilt is added. */
   outerRotationX: number
-  /** Base vertical offset applied to outerRef every frame, before bob is added. */
+  /** Base vertical offset applied to outerRef every frame. */
   outerPositionY: number
 }
 
@@ -79,7 +77,6 @@ const DEFAULT_MODEL_TUNING: ModelTuning = {
   // the camera. Flip the sign if a future model ends up facing the wrong way.
   rotationY: Math.PI / 2,
   rotationZ: 0,
-  ambientSway: false,
   outerRotationX: 0.03,
   outerPositionY: -0.08,
 }
@@ -89,7 +86,7 @@ const DEFAULT_MODEL_TUNING: ModelTuning = {
 // alone when adjusting the vault, and vice versa.
 const VAULT_MODEL_TUNING: ModelTuning = {
   ...DEFAULT_MODEL_TUNING,
-  targetSize: 1.15,
+  targetSize: 1.5,
   // The model sits centred on its own bounding-box middle. The card-exit
   // alignment is tuned on the cards' side instead, via MEMORY_VERTICAL_BASELINE
   // in vaultHeroLogic.ts. This offset is a *second*, independent lever: it
@@ -97,9 +94,8 @@ const VAULT_MODEL_TUNING: ModelTuning = {
   // slot. Negative = down. The model and the memory cards are siblings under
   // outerRef, so this is the only way to move the vault body alone without
   // dragging the card orbit with it.
-  verticalOffset: 0.75,
+  verticalOffset: 0,
   rotationY: 0,
-  ambientSway: true,
 }
 
 // Financieel gedrag model-only overrides, tuned by eye the same way as the
@@ -113,7 +109,6 @@ const FINANCIEEL_GEDRAG_MODEL_TUNING: ModelTuning = {
   rotationX: 1.53,
   rotationY: 0.0007963267948964958,
   rotationZ: -1.98,
-  ambientSway: false,
   outerRotationX: -0.18,
   outerPositionY: -0.08,
 }
@@ -194,7 +189,6 @@ export default function VaultSceneModel({
       rotationX: { value: defaults.rotationX, min: -Math.PI, max: Math.PI, step: 0.01 },
       rotationY: { value: defaults.rotationY, min: -Math.PI, max: Math.PI, step: 0.01 },
       rotationZ: { value: defaults.rotationZ, min: -Math.PI, max: Math.PI, step: 0.01 },
-      ambientSway: defaults.ambientSway,
       outerRotationX: { value: defaults.outerRotationX, min: -1, max: 1, step: 0.01 },
       outerPositionY: { value: defaults.outerPositionY, min: -2, max: 2, step: 0.01 },
     },
@@ -412,24 +406,21 @@ export default function VaultSceneModel({
   useFrame((state) => {
     const elapsed = state.clock.elapsedTime
 
-    // The idle sway is a per-model flourish (vault: on) that runs all the
-    // time, independent of focus. Mouse-follow tilt is a separate lever
-    // that only kicks in once a card is the active/open one, for any model.
+    // Mouse-follow tilt only kicks in once a card is the active/open one.
+    // The idle wobble that used to be layered in here is now applied to
+    // every card alike, one level up, by AmbientSway in CardItem.
     if (outerRef.current) {
       const tilt = currentTiltRef.current
       const target = pointerTiltRef.current
       tilt.x += (target.x - tilt.x) * 0.08
       tilt.y += (target.y - tilt.y) * 0.08
 
-      const sway = tuning.ambientSway ? Math.sin(elapsed * 0.35) * 0.05 : 0
-      const bob = tuning.ambientSway ? Math.sin(elapsed * 0.5) * 0.018 : 0
-      const bobY = tuning.ambientSway ? Math.sin(elapsed * 0.8) * 0.035 : 0
       const tiltY = focused ? tilt.y * 0.16 : 0
       const tiltX = focused ? tilt.x * 0.1 : 0
 
-      outerRef.current.rotation.y = vaultBaseRotationY + sway + tiltY
-      outerRef.current.rotation.x = tuning.outerRotationX + bob + tiltX
-      outerRef.current.position.y = tuning.outerPositionY + bobY
+      outerRef.current.rotation.y = vaultBaseRotationY + tiltY
+      outerRef.current.rotation.x = tuning.outerRotationX + tiltX
+      outerRef.current.position.y = tuning.outerPositionY
     }
 
     const rig = rigRef.current

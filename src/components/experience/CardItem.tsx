@@ -7,6 +7,7 @@ import { useControls } from 'leva'
 import { Component, Suspense, useEffect, useRef, type ReactNode } from 'react'
 import * as THREE from 'three'
 
+import AmbientSway, { swayPhaseFromId } from './AmbientSway'
 import { useDebugStore } from './debugStore'
 import CrateModel from './CrateModel'
 import DiceModel from './DiceModel'
@@ -140,7 +141,13 @@ function GradientCardFace({
 function CardLoadingFallback({ colorA }: { colorA: string }) {
   return (
     <RoundedBox args={[CARD_WIDTH, CARD_HEIGHT, 0.05]} radius={0.045} smoothness={4}>
-      <meshStandardMaterial color={colorA} roughness={0.65} metalness={0.04} transparent opacity={0.35} />
+      <meshStandardMaterial
+        color={colorA}
+        roughness={0.65}
+        metalness={0.04}
+        transparent
+        opacity={0.35}
+      />
     </RoundedBox>
   )
 }
@@ -264,7 +271,8 @@ export default function CardItem({
       wasDraggingRef.current = false
       return
     }
-    if (!wasDraggingRef.current) {
+    const justStarted = !wasDraggingRef.current
+    if (justStarted) {
       // Just started dragging: stop any in-flight snap tween so the live,
       // non-animated proximity values below take over cleanly instead of
       // fighting it for the same properties.
@@ -282,7 +290,19 @@ export default function CardItem({
     const dragWorldUnits = (dragForwardPx.current / dragPixelsPerCard) * spacing
     const worldOffset = dragOffsetFromCenter * spacing - dragWorldUnits
     const rawProximity = Math.max(0, 1 - Math.abs(worldOffset) / spacing)
-    smoothProximityRef.current += (rawProximity - smoothProximityRef.current) * PROXIMITY_LERP
+    if (justStarted) {
+      // Seeded, not eased into, on the first frame of a gesture: this ref
+      // persists across drags and still holds wherever the *previous* one
+      // stopped smoothing (0 before the first drag of the page's life).
+      // Easing up from that stale value made the active card visibly shrink
+      // toward unfocusedScale and grow back over the handful of frames
+      // PROXIMITY_LERP needs to close the gap - a pop right at the moment
+      // of grabbing. Nothing needs easing here anyway: at rest the raw
+      // value already matches where the GSAP focus tween left the card.
+      smoothProximityRef.current = rawProximity
+    } else {
+      smoothProximityRef.current += (rawProximity - smoothProximityRef.current) * PROXIMITY_LERP
+    }
     const proximity = smoothProximityRef.current
 
     groupRef.current.scale.setScalar(lerp(tuning.unfocusedScale, tuning.focusedScale, proximity))
@@ -325,76 +345,78 @@ export default function CardItem({
         document.body.style.cursor = 'auto'
       }}
     >
-      <ModelErrorBoundary colorA={item.colorA}>
-        <Suspense fallback={<CardLoadingFallback colorA={item.colorA} />}>
-          {item.type === 'model' && item.modelPath ? (
-            <VaultSceneModel
-              modelUrl={item.modelPath}
-              focused={focused}
-              scale={VAULT_SCALE}
-              label={item.title}
-            />
-          ) : item.type === 'figma' && item.modelPath ? (
-            <FigmaStackModel
-              modelUrl={item.modelPath}
-              focused={focused}
-              scale={VAULT_SCALE}
-              label={item.title}
-            />
-          ) : item.type === 'nodegraph' && item.modelPath ? (
-            <NodeGraphModel
-              modelUrl={item.modelPath}
-              focused={focused}
-              scale={VAULT_SCALE}
-              label={item.title}
-            />
-          ) : item.type === 'dice' && item.modelPath ? (
-            <DiceModel
-              modelUrl={item.modelPath}
-              focused={focused}
-              scale={VAULT_SCALE}
-              label={item.title}
-            />
-          ) : item.type === 'crate' && item.modelPath ? (
-            <CrateModel
-              modelUrl={item.modelPath}
-              focused={focused}
-              scale={VAULT_SCALE}
-              label={item.title}
-            />
-          ) : item.type === 'smartphone' && item.modelPath ? (
-            <PhoneModel
-              modelUrl={item.modelPath}
-              screenImageUrl={item.screenImagePath}
-              screenImageAspect={item.screenImageAspect}
-              focused={focused}
-              scale={VAULT_SCALE}
-              label={item.title}
-            />
-          ) : item.type === 'monitor' && item.modelPath ? (
-            <MonitorModel
-              modelUrl={item.modelPath}
-              screenImageUrl={item.screenImagePath}
-              focused={focused}
-              scale={VAULT_SCALE}
-              label={item.title}
-            />
-          ) : item.imagePath ? (
-            <TiltGroup focused={focused}>
-              <ImageCardFace
-                imagePath={item.imagePath}
-                imageAspect={item.imageAspect}
-                colorA={item.colorA}
-                matRef={cardMatRef}
+      <AmbientSway phase={swayPhaseFromId(item.id)}>
+        <ModelErrorBoundary colorA={item.colorA}>
+          <Suspense fallback={<CardLoadingFallback colorA={item.colorA} />}>
+            {item.type === 'model' && item.modelPath ? (
+              <VaultSceneModel
+                modelUrl={item.modelPath}
+                focused={focused}
+                scale={VAULT_SCALE}
+                label={item.title}
               />
-            </TiltGroup>
-          ) : (
-            <TiltGroup focused={focused}>
-              <GradientCardFace colorA={item.colorA} colorB={item.colorB} matRef={cardMatRef} />
-            </TiltGroup>
-          )}
-        </Suspense>
-      </ModelErrorBoundary>
+            ) : item.type === 'figma' && item.modelPath ? (
+              <FigmaStackModel
+                modelUrl={item.modelPath}
+                focused={focused}
+                scale={VAULT_SCALE}
+                label={item.title}
+              />
+            ) : item.type === 'nodegraph' && item.modelPath ? (
+              <NodeGraphModel
+                modelUrl={item.modelPath}
+                focused={focused}
+                scale={VAULT_SCALE}
+                label={item.title}
+              />
+            ) : item.type === 'dice' && item.modelPath ? (
+              <DiceModel
+                modelUrl={item.modelPath}
+                focused={focused}
+                scale={VAULT_SCALE}
+                label={item.title}
+              />
+            ) : item.type === 'crate' && item.modelPath ? (
+              <CrateModel
+                modelUrl={item.modelPath}
+                focused={focused}
+                scale={VAULT_SCALE}
+                label={item.title}
+              />
+            ) : item.type === 'smartphone' && item.modelPath ? (
+              <PhoneModel
+                modelUrl={item.modelPath}
+                screenImageUrl={item.screenImagePath}
+                screenImageAspect={item.screenImageAspect}
+                focused={focused}
+                scale={VAULT_SCALE}
+                label={item.title}
+              />
+            ) : item.type === 'monitor' && item.modelPath ? (
+              <MonitorModel
+                modelUrl={item.modelPath}
+                screenImageUrl={item.screenImagePath}
+                focused={focused}
+                scale={VAULT_SCALE}
+                label={item.title}
+              />
+            ) : item.imagePath ? (
+              <TiltGroup focused={focused}>
+                <ImageCardFace
+                  imagePath={item.imagePath}
+                  imageAspect={item.imageAspect}
+                  colorA={item.colorA}
+                  matRef={cardMatRef}
+                />
+              </TiltGroup>
+            ) : (
+              <TiltGroup focused={focused}>
+                <GradientCardFace colorA={item.colorA} colorB={item.colorB} matRef={cardMatRef} />
+              </TiltGroup>
+            )}
+          </Suspense>
+        </ModelErrorBoundary>
+      </AmbientSway>
     </group>
   )
 }

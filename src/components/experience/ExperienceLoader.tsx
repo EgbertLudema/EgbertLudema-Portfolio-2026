@@ -51,10 +51,18 @@ export default function ExperienceLoader({
   const active = useProgress((state) => state.active)
 
   useEffect(() => {
-    if (active) return
+    // Gated on canvasReady, not on `active` alone: nothing requests a model
+    // or a texture until the Canvas has mounted the card row, and that
+    // happens well over ASSET_SETTLE_MS after this component first renders
+    // (`Experience` is a dynamic import, so its JS chunk has to download
+    // first). Starting the settle window at mount meant it expired against
+    // a loading manager that was only idle because no load had started
+    // yet, so assetsReady was already true by the time the models actually
+    // began loading and the cover lifted on a row of empty placeholders.
+    if (!canvasReady || active) return
     const timeout = window.setTimeout(() => setAssetsReady(true), ASSET_SETTLE_MS)
     return () => window.clearTimeout(timeout)
-  }, [active])
+  }, [active, canvasReady])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setAssetsReady(true), MAX_ASSET_WAIT_MS)
