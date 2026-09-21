@@ -211,12 +211,6 @@ export default function Experience({
   // committed a jump to the first card.
   const gestureSourceRef = useRef<'pointer' | 'wheel' | null>(null)
   const recoveryCountRef = useRef(0)
-  const stageRef = useRef<HTMLElement>(null)
-  // Mirrors the 720px CSS breakpoint where `.stage` switches from a
-  // non-scrolling carousel-only surface to a scrollable one with a footer
-  // below it: see the touch handlers, which only let a vertical drag fall
-  // through to native scroll (instead of driving the carousel) at that width.
-  const isMobileRef = useRef(false)
   const listRef = useRef<HTMLElement>(null)
   const travelDotRef = useRef<HTMLSpanElement>(null)
   const dotRefs = useRef<(HTMLSpanElement | null)[]>([])
@@ -366,16 +360,6 @@ export default function Experience({
   }, [renderedIndex])
 
   useEffect(() => {
-    const query = window.matchMedia('(max-width: 720px)')
-    const sync = () => {
-      isMobileRef.current = query.matches
-    }
-    sync()
-    query.addEventListener('change', sync)
-    return () => query.removeEventListener('change', sync)
-  }, [])
-
-  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && menuOpenRef.current) {
         setMenuOpen(false)
@@ -394,7 +378,6 @@ export default function Experience({
       // Once scrolled down into the mobile footer, there's nothing to
       // swipe, so leave the gesture to native scroll entirely rather than
       // starting a carousel drag that has no visible row to follow.
-      if (isMobileRef.current && (stageRef.current?.scrollTop ?? 0) > 8) return
       // A real grab takes over from any wheel session still winding down,
       // rather than the two sharing one accumulator: that session's pending
       // idle timeout would otherwise fire mid-drag and commit a snap.
@@ -425,7 +408,6 @@ export default function Experience({
       const dx = dragStart.current.x - x
       const dy = dragStart.current.y - y
       const horizontalDominant = Math.abs(dx) > Math.abs(dy)
-      if (isTouch && isMobileRef.current && !horizontalDominant) return
       dragForwardPx.current = applyOverscrollResistance(
         horizontalDominant ? dx : dy,
         activeIndexRef.current,
@@ -702,7 +684,7 @@ export default function Experience({
   return (
     <DebugStoreProvider value={debugStore}>
       {isDev && <DebugPanel store={debugStore} />}
-      <main className={`${styles.stage} ${dragging ? styles.stageDragging : ''}`} ref={stageRef}>
+      <main className={`${styles.stage} ${dragging ? styles.stageDragging : ''}`}>
         <div className={styles.heroScreen}>
           <div className={styles.canvasWrap}>
             {canvasGaveUp ? (
@@ -868,10 +850,6 @@ export default function Experience({
           </footer>
         </div>
 
-        <footer className={styles.mobileFooter}>
-          <div className={styles.bottomBarLinks}>{footerLinks}</div>
-          <span className={styles.bottomBarCopyright}>&copy; {year} Egbert Ludema</span>
-        </footer>
       </main>
     </DebugStoreProvider>
   )

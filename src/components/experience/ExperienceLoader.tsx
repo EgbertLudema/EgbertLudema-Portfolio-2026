@@ -71,9 +71,29 @@ export default function ExperienceLoader({
 
   const ready = canvasReady && assetsReady
 
+  // Arriving via PageTransition's bubble: that overlay is already covering
+  // the screen and stays up until we report ready, so a second loading
+  // screen of our own would just replay the cover/reveal animation.
+  const [viaTransition] = useState(
+    () => typeof document !== 'undefined' && document.documentElement.dataset.pageTransition === '1',
+  )
+
+  useEffect(() => {
+    delete document.documentElement.dataset.homeReady
+    return () => {
+      delete document.documentElement.dataset.homeReady
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!ready) return
+    document.documentElement.dataset.homeReady = '1'
+    window.dispatchEvent(new Event('home-ready'))
+  }, [ready])
+
   return (
     <>
-      <HomeLoadingScreen ready={ready} />
+      {viaTransition ? null : <HomeLoadingScreen ready={ready} />}
       <Experience
         items={items}
         locale={locale}

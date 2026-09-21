@@ -61,6 +61,7 @@ export default function PageTransitionProvider({ children }: { children: ReactNo
   const navigate = (href: string, origin?: Origin) => {
     if (isAnimatingRef.current || href === pathname) return
     isAnimatingRef.current = true
+    document.documentElement.dataset.pageTransition = '1'
 
     const overlay = overlayRef.current
     if (!overlay) {
@@ -109,10 +110,12 @@ export default function PageTransitionProvider({ children }: { children: ReactNo
       return
     }
 
+    const reveal = () => {
     const tl = gsap.timeline({
       onComplete: () => {
         isAnimatingRef.current = false
         gsap.set(overlay, { scale: 0 })
+        delete document.documentElement.dataset.pageTransition
       },
     })
     if (dotRef.current) {
@@ -143,6 +146,21 @@ export default function PageTransitionProvider({ children }: { children: ReactNo
         0.3,
       )
     }
+    }
+
+    // The homepage has its own loading screen; arriving there via this
+    // transition, the overlay simply stays up until the home experience
+    // reports ready (see ExperienceLoader), instead of revealing and then
+    // being covered a second time.
+    if (pathname === '/' && document.documentElement.dataset.homeReady !== '1') {
+      const onHomeReady = () => {
+        window.removeEventListener('home-ready', onHomeReady)
+        reveal()
+      }
+      window.addEventListener('home-ready', onHomeReady)
+      return () => window.removeEventListener('home-ready', onHomeReady)
+    }
+    reveal()
   }, [pathname])
 
   return (
