@@ -3,6 +3,19 @@
   inset: 0;
   overflow-y: auto;
   background: var(--color-bg);
+  /* .pageNav's own height shrinks once scrolled past
+     SCROLL_COLLAPSE_THRESHOLD (its padding tightens and .clockWrap
+     collapses to 0). Left to the browser's default scroll anchoring, that
+     shrink nudges this container's scrollTop back down below the
+     threshold to keep the viewport's visual content stable, which
+     un-collapses the header, growing it back and pushing scrollTop past
+     the threshold again - an infinite collapse/expand loop (and a visibly
+     jittering scrollbar) once scrollTop sits anywhere near the boundary.
+     overflow-anchor: none on .pageNav alone isn't enough - the browser
+     just anchors to something further down the page instead, which still
+     gets shifted by the same resize - so it has to be disabled for the
+     whole scroller. */
+  overflow-anchor: none;
 }
 
 .article {
