@@ -5,6 +5,7 @@ import { button, LevaPanel, useControls, useCreateStore } from 'leva'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import LanguageSwitch from '@/components/LanguageSwitch'
+import NavItemLink, { type NavLink } from '@/components/NavItemLink'
 import TransitionLink from '@/components/TransitionLink'
 import { getDictionary } from '@/lib/i18n'
 import type { Locale } from '@/lib/locale'
@@ -159,11 +160,13 @@ export default function Experience({
   items,
   locale,
   contact,
+  navLinks,
   onReady,
 }: {
   items: ExperienceItem[]
   locale: Locale
   contact: ContactInfo
+  navLinks: NavLink[]
   /** Fired once the scene has an actual rendered frame on screen (or,
    * immediately, if there's no scene to render at all) so the caller can
    * dismiss its loading screen. See Scene's own onReady. */
@@ -726,15 +729,9 @@ export default function Experience({
             </div>
             <div className={styles.topBarRight}>
               <nav className={styles.topNav} aria-label={t.nav.siteNavigation}>
-                <TransitionLink href="/about" className={styles.topNavLink}>
-                  {t.nav.about}
-                </TransitionLink>
-                <TransitionLink href="/projects" className={styles.topNavLink}>
-                  {t.nav.projects}
-                </TransitionLink>
-                <TransitionLink href="/contact" className={styles.topNavLink}>
-                  {t.nav.contact}
-                </TransitionLink>
+                {navLinks.map((link) => (
+                  <NavItemLink key={link.id} link={link} className={styles.topNavLink} />
+                ))}
                 <LanguageSwitch locale={locale} />
               </nav>
               <button
@@ -787,15 +784,9 @@ export default function Experience({
                 </div>
 
                 <nav className={styles.menuNav} aria-label={t.nav.siteNavigation}>
-                  <TransitionLink href="/about" className={styles.menuNavLink}>
-                    {t.nav.about}
-                  </TransitionLink>
-                  <TransitionLink href="/projects" className={styles.menuNavLink}>
-                    {t.nav.projects}
-                  </TransitionLink>
-                  <TransitionLink href="/contact" className={styles.menuNavLink}>
-                    {t.nav.contact}
-                  </TransitionLink>
+                  {navLinks.map((link) => (
+                    <NavItemLink key={link.id} link={link} className={styles.menuNavLink} />
+                  ))}
                 </nav>
                 <LanguageSwitch locale={locale} className={styles.menuLanguage} />
 

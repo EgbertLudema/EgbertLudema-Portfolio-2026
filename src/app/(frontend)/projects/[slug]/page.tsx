@@ -1,4 +1,6 @@
+import { cache } from 'react'
 import { getPayload } from 'payload'
+import { draftMode } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { RichText } from '@payloadcms/richtext-lexical/react'
@@ -8,26 +10,33 @@ import type { Media, Project, Skill } from '@/payload-types'
 import { getDictionary } from '@/lib/i18n'
 import { getLocale } from '@/lib/getLocale'
 import type { Locale } from '@/lib/locale'
+import { projectPath } from '@/lib/previewPath'
+import { isPublished, isPublishedDoc } from '@/lib/published'
 import { projectContentConverters } from '@/lib/projectRichTextConverters'
 import PageNav from '@/components/PageNav'
 import PageFooter from '@/components/PageFooter'
+import PreviewBar from '@/components/PreviewBar'
 import TransitionLink from '@/components/TransitionLink'
 import styles from '../../PageShell.module.css'
 import Gallery from './Gallery'
 
 export const revalidate = 0
 
-async function getProject(slug: string, locale: Locale) {
+/** In draft mode (admin preview) this returns the latest draft, otherwise
+ * only a published project. Cached so generateMetadata and the page share
+ * one query. */
+const getProject = cache(async (slug: string, locale: Locale, draft: boolean) => {
   const payload = await getPayload({ config })
   const { docs } = await payload.find({
     collection: 'projects',
-    where: { slug: { equals: slug } },
+    where: draft ? { slug: { equals: slug } } : { and: [{ slug: { equals: slug } }, isPublished] },
+    draft,
     depth: 2,
     limit: 1,
     locale,
   })
   return docs[0] ?? null
-}
+})
 
 export async function generateMetadata({
   params,
@@ -36,7 +45,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const locale = await getLocale()
-  const project = await getProject(slug, locale)
+  const { isEnabled: draft } = await draftMode()
+  const project = await getProject(slug, locale, draft)
   if (!project) return { title: 'Egbert Ludema · Project not found' }
   return {
     title: `Egbert Ludema · ${project.title}`,
@@ -48,7 +58,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params
   const locale = await getLocale()
   const t = getDictionary(locale)
-  const project = await getProject(slug, locale)
+  const { isEnabled: draft } = await draftMode()
+  const project = await getProject(slug, locale, draft)
   if (!project) notFound()
 
   const heroImage = typeof project.heroImage === 'object' ? (project.heroImage as Media) : null
@@ -61,8 +72,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
       typeof item.image === 'object',
   )
   const skills = (project.skills ?? []).filter((skill): skill is Skill => typeof skill === 'object')
+  // In draft mode related projects come back as their latest drafts too, so
+  // only filter unpublished ones out of the live page.
   const relatedProjects = (project.relatedProjects ?? []).filter(
-    (related): related is Project => typeof related === 'object',
+    (related): related is Project =>
+      typeof related === 'object' && (draft || isPublishedDoc(related)),
   )
 
   return (
@@ -154,6 +168,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
 
         <PageFooter locale={locale} />
       </article>
+      {draft ? <PreviewBar path={projectPath(slug)} /> : null}
     </main>
   )
 }

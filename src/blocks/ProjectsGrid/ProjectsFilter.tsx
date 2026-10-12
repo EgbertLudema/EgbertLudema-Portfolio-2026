@@ -6,7 +6,7 @@ import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
 
 import TransitionLink from '@/components/TransitionLink'
-import styles from '../PageShell.module.css'
+import styles from '@/app/(frontend)/PageShell.module.css'
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(Flip)
@@ -39,18 +39,22 @@ export type FilterableProject = {
 export default function ProjectsFilter({
   skills,
   projects,
+  showFilter,
   noSkillsAdded,
   projectsLabel,
   noProjectsForSkill,
 }: {
   skills: SkillItem[]
   projects: FilterableProject[]
+  showFilter: boolean
   noSkillsAdded: string
   projectsLabel: string
   noProjectsForSkill: string
 }) {
   const searchParams = useSearchParams()
-  const [active, setActiveState] = useState<string | null>(() => searchParams.get('skill'))
+  const [active, setActiveState] = useState<string | null>(() =>
+    showFilter ? searchParams.get('skill') : null,
+  )
   const gridRef = useRef<HTMLDivElement>(null)
   const flipStateRef = useRef<Flip.FlipState | null>(null)
 
@@ -75,7 +79,8 @@ export default function ProjectsFilter({
       params.delete('skill')
     }
     const query = params.toString()
-    const url = query ? `/projects?${query}` : '/projects'
+    const { pathname } = window.location
+    const url = query ? `${pathname}?${query}` : pathname
     window.history.replaceState(window.history.state, '', url)
   }
 
@@ -119,7 +124,7 @@ export default function ProjectsFilter({
 
   return (
     <>
-      {skills.length > 0 ? (
+      {!showFilter ? null : skills.length > 0 ? (
         <ul className={styles.skillList}>
           {skills.map((skill) => (
             <li key={skill.id}>

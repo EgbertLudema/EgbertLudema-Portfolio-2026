@@ -4,6 +4,7 @@ import { useProgress } from '@react-three/drei'
 import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 
+import type { NavLink } from '@/components/NavItemLink'
 import type { Locale } from '@/lib/locale'
 import type { ExperienceItem } from './items'
 import type { ContactInfo } from './Experience'
@@ -29,10 +30,12 @@ export default function ExperienceLoader({
   items,
   locale,
   contact,
+  navLinks,
 }: {
   items: ExperienceItem[]
   locale: Locale
   contact: ContactInfo
+  navLinks: NavLink[]
 }) {
   // Three gaps a blank/half-loaded page would otherwise leave: the dynamic
   // import's own download (before `Experience` mounts at all), the moment
@@ -98,6 +101,7 @@ export default function ExperienceLoader({
         items={items}
         locale={locale}
         contact={contact}
+        navLinks={navLinks}
         onReady={() => setCanvasReady(true)}
       />
     </>

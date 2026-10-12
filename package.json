@@ -10,6 +10,7 @@
     "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
+    "migrate:pages": "cross-env NODE_OPTIONS=--no-deprecation payload run ./src/scripts/migrate-to-pages.ts",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run ./src/seed.ts",
@@ -20,6 +21,7 @@
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.85.2",
+    "@payloadcms/live-preview-react": "3.85.2",
     "@payloadcms/next": "3.85.2",
     "@payloadcms/richtext-lexical": "3.85.2",
     "@payloadcms/storage-vercel-blob": "3.85.2",

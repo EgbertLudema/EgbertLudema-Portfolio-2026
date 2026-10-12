@@ -67,12 +67,13 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    users: User;
+    pages: Page;
+    projects: Project;
+    skills: Skill;
     media: Media;
     models: Model;
     documents: Document;
-    projects: Project;
-    skills: Skill;
+    users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -80,12 +81,13 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
+    projects: ProjectsSelect<false> | ProjectsSelect<true>;
+    skills: SkillsSelect<false> | SkillsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     models: ModelsSelect<false> | ModelsSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
-    projects: ProjectsSelect<false> | ProjectsSelect<true>;
-    skills: SkillsSelect<false> | SkillsSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -96,13 +98,15 @@ export interface Config {
   };
   fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'nl') | ('en' | 'nl')[];
   globals: {
-    'about-page': AboutPage;
+    navigation: Navigation;
     'contact-page': ContactPage;
+    'about-page': AboutPage;
     'skills-page': SkillsPage;
   };
   globalsSelect: {
-    'about-page': AboutPageSelect<false> | AboutPageSelect<true>;
+    navigation: NavigationSelect<false> | NavigationSelect<true>;
     'contact-page': ContactPageSelect<false> | ContactPageSelect<true>;
+    'about-page': AboutPageSelect<false> | AboutPageSelect<true>;
     'skills-page': SkillsPageSelect<false> | SkillsPageSelect<true>;
   };
   locale: 'en' | 'nl';
@@ -134,29 +138,72 @@ export interface UserAuthOperations {
   };
 }
 /**
+ * Pages served at /<slug>, built from a hero and content blocks. Only published pages are visible on the site.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "pages".
  */
-export interface User {
+export interface Page {
   id: number;
+  /**
+   * Page heading, also used as the browser tab title.
+   */
+  title: string;
+  hero?: {
+    /**
+     * Optional portrait photo shown beside the heading.
+     */
+    photo?: (number | null) | Media;
+    /**
+     * Small label shown above the title, e.g. "ABOUT · 2026"
+     */
+    category?: string | null;
+    /**
+     * Short intro shown under the title.
+     */
+    description?: string | null;
+    /**
+     * Show the email address and social links from the "Contact Details" global under the intro.
+     */
+    showContactDetails?: boolean | null;
+    /**
+     * Buttons under the intro, e.g. "Download CV" or "GitHub".
+     */
+    links?:
+      | {
+          label: string;
+          type?: ('url' | 'file') | null;
+          url?: string | null;
+          /**
+           * Can differ per language, e.g. an English and a Dutch CV.
+           */
+          file?: (number | null) | Document;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Sections shown below the hero, top to bottom. Drag to reorder.
+   */
+  layout?: (ContentBlock | TimelineBlock | SkillsListBlock | ProjectsGridBlock | MediaBlock)[] | null;
+  meta?: {
+    /**
+     * Browser tab / search result title. Defaults to the page title.
+     */
+    title?: string | null;
+    /**
+     * Search result description. Defaults to the hero intro.
+     */
+    description?: string | null;
+  };
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
   updatedAt: string;
   createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -164,30 +211,6 @@ export interface User {
  */
 export interface Media {
   id: number;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * Upload .glb / .gltf files to use as the 3D object in a project.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "models".
- */
-export interface Model {
-  id: number;
-  /**
-   * Short internal name, e.g. "Vault safe"
-   */
   alt: string;
   updatedAt: string;
   createdAt: string;
@@ -226,7 +249,147 @@ export interface Document {
   focalY?: number | null;
 }
 /**
- * The list of items shown on the homepage.
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContentBlock".
+ */
+export interface ContentBlock {
+  /**
+   * Free-form text with headings, lists and links. To color a heading, select its text and use "Text Color" in the toolbar.
+   */
+  richText?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'content';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TimelineBlock".
+ */
+export interface TimelineBlock {
+  /**
+   * Section label, e.g. "Experience" or "Education"
+   */
+  label: string;
+  /**
+   * Shown as a list. Drag to reorder.
+   */
+  items?:
+    | {
+        /**
+         * Company/school logo, shown next to the organization name.
+         */
+        logo?: (number | null) | Media;
+        /**
+         * Company or school name, e.g. "NHL Stenden Leeuwarden"
+         */
+        organization: string;
+        /**
+         * Role or programme, e.g. "Freelance Web Developer"
+         */
+        title: string;
+        /**
+         * e.g. "Feb 2024 - present"
+         */
+        period?: string | null;
+        /**
+         * Optional short line about this entry.
+         */
+        description?: string | null;
+        /**
+         * Current / ongoing: highlights this entry's dot.
+         */
+        current?: boolean | null;
+        /**
+         * Shown as chips beneath this entry.
+         */
+        skills?: (number | Skill)[] | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'timeline';
+}
+/**
+ * Skills that can be linked to projects, powering a future skills-hover section.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills".
+ */
+export interface Skill {
+  id: number;
+  title: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  /**
+   * Short description of this skill.
+   */
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SkillsListBlock".
+ */
+export interface SkillsListBlock {
+  /**
+   * Section label, e.g. "Skills"
+   */
+  label: string;
+  source?: ('all' | 'selected') | null;
+  skills?: (number | Skill)[] | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'skillsList';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProjectsGridBlock".
+ */
+export interface ProjectsGridBlock {
+  /**
+   * Section label above the grid, e.g. "Projects"
+   */
+  label: string;
+  /**
+   * Show skill chips above the grid that filter it. Only skills linked to at least one published project are shown.
+   */
+  showFilter?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'projectsGrid';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaBlock".
+ */
+export interface MediaBlock {
+  media: number | Media;
+  caption?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'mediaBlock';
+}
+/**
+ * The list of items shown on the homepage. Only published projects appear on the site; drafts stay hidden until you publish them.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "projects".
@@ -324,27 +487,56 @@ export interface Project {
   relatedProjects?: (number | Project)[] | null;
   updatedAt: string;
   createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
- * Skills that can be linked to projects, powering a future skills-hover section.
+ * Upload .glb / .gltf files to use as the 3D object in a project.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "skills".
+ * via the `definition` "models".
  */
-export interface Skill {
+export interface Model {
   id: number;
-  title: string;
   /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   * Short internal name, e.g. "Vault safe"
    */
-  generateSlug?: boolean | null;
-  slug: string;
-  /**
-   * Short description of this skill.
-   */
-  description?: string | null;
+  alt: string;
   updatedAt: string;
   createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -371,8 +563,16 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: number | User;
+        relationTo: 'pages';
+        value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'projects';
+        value: number | Project;
+      } | null)
+    | ({
+        relationTo: 'skills';
+        value: number | Skill;
       } | null)
     | ({
         relationTo: 'media';
@@ -387,12 +587,8 @@ export interface PayloadLockedDocument {
         value: number | Document;
       } | null)
     | ({
-        relationTo: 'projects';
-        value: number | Project;
-      } | null)
-    | ({
-        relationTo: 'skills';
-        value: number | Skill;
+        relationTo: 'users';
+        value: number | User;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -438,25 +634,159 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
+ * via the `definition` "pages_select".
  */
-export interface UsersSelect<T extends boolean = true> {
-  updatedAt?: T;
-  createdAt?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
+export interface PagesSelect<T extends boolean = true> {
+  title?: T;
+  hero?:
     | T
     | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
+        photo?: T;
+        category?: T;
+        description?: T;
+        showContactDetails?: T;
+        links?:
+          | T
+          | {
+              label?: T;
+              type?: T;
+              url?: T;
+              file?: T;
+              id?: T;
+            };
       };
+  layout?:
+    | T
+    | {
+        content?: T | ContentBlockSelect<T>;
+        timeline?: T | TimelineBlockSelect<T>;
+        skillsList?: T | SkillsListBlockSelect<T>;
+        projectsGrid?: T | ProjectsGridBlockSelect<T>;
+        mediaBlock?: T | MediaBlockSelect<T>;
+      };
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  generateSlug?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContentBlock_select".
+ */
+export interface ContentBlockSelect<T extends boolean = true> {
+  richText?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TimelineBlock_select".
+ */
+export interface TimelineBlockSelect<T extends boolean = true> {
+  label?: T;
+  items?:
+    | T
+    | {
+        logo?: T;
+        organization?: T;
+        title?: T;
+        period?: T;
+        description?: T;
+        current?: T;
+        skills?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SkillsListBlock_select".
+ */
+export interface SkillsListBlockSelect<T extends boolean = true> {
+  label?: T;
+  source?: T;
+  skills?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProjectsGridBlock_select".
+ */
+export interface ProjectsGridBlockSelect<T extends boolean = true> {
+  label?: T;
+  showFilter?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaBlock_select".
+ */
+export interface MediaBlockSelect<T extends boolean = true> {
+  media?: T;
+  caption?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects_select".
+ */
+export interface ProjectsSelect<T extends boolean = true> {
+  title?: T;
+  generateSlug?: T;
+  slug?: T;
+  category?: T;
+  description?: T;
+  links?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
+  content?: T;
+  heroImage?: T;
+  gallery?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
+  type?: T;
+  image?: T;
+  model?: T;
+  homeScreenImage?: T;
+  accentColorA?: T;
+  accentColorB?: T;
+  order?: T;
+  skills?: T;
+  relatedProjects?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills_select".
+ */
+export interface SkillsSelect<T extends boolean = true> {
+  title?: T;
+  generateSlug?: T;
+  slug?: T;
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -514,53 +844,25 @@ export interface DocumentsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "projects_select".
+ * via the `definition` "users_select".
  */
-export interface ProjectsSelect<T extends boolean = true> {
-  title?: T;
-  generateSlug?: T;
-  slug?: T;
-  category?: T;
-  description?: T;
-  links?:
-    | T
-    | {
-        label?: T;
-        url?: T;
-        id?: T;
-      };
-  content?: T;
-  heroImage?: T;
-  gallery?:
-    | T
-    | {
-        image?: T;
-        caption?: T;
-        id?: T;
-      };
-  type?: T;
-  image?: T;
-  model?: T;
-  homeScreenImage?: T;
-  accentColorA?: T;
-  accentColorB?: T;
-  order?: T;
-  skills?: T;
-  relatedProjects?: T;
+export interface UsersSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "skills_select".
- */
-export interface SkillsSelect<T extends boolean = true> {
-  title?: T;
-  generateSlug?: T;
-  slug?: T;
-  description?: T;
-  updatedAt?: T;
-  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -601,6 +903,67 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Links in the site header (after "Home"), on every page including the homepage. Links to unpublished pages are left out automatically.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation".
+ */
+export interface Navigation {
+  id: number;
+  /**
+   * Drag to reorder.
+   */
+  links?:
+    | {
+        type?: ('page' | 'custom') | null;
+        page?: (number | null) | Page;
+        /**
+         * e.g. "/projects/vault" or "https://github.com/...". External links open in a new tab.
+         */
+        url?: string | null;
+        /**
+         * Leave empty to use the page title.
+         */
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Email and social links used in the site footer, on the homepage, and in any page hero with "Show contact details" turned on.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-page".
+ */
+export interface ContactPage {
+  id: number;
+  photo?: (number | null) | Media;
+  category?: string | null;
+  title?: string | null;
+  description?: string | null;
+  /**
+   * Shown as a mailto: link.
+   */
+  email: string;
+  /**
+   * Social links shown on the contact page, e.g. LinkedIn, GitHub, Instagram. Drag to reorder.
+   */
+  socials?:
+    | {
+        /**
+         * Platform name, e.g. "LinkedIn"
+         */
+        label: string;
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
 }
 /**
  * Content for the /about page.
@@ -703,47 +1066,6 @@ export interface AboutPage {
   createdAt?: string | null;
 }
 /**
- * Content for the /contact page.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "contact-page".
- */
-export interface ContactPage {
-  id: number;
-  /**
-   * Portrait photo shown on the Contact page.
-   */
-  photo?: (number | null) | Media;
-  /**
-   * Small label shown above the title, e.g. "CONTACT · 2026"
-   */
-  category?: string | null;
-  title: string;
-  /**
-   * Short intro shown under the title.
-   */
-  description: string;
-  /**
-   * Shown as a mailto: link.
-   */
-  email: string;
-  /**
-   * Social links shown on the contact page, e.g. LinkedIn, GitHub, Instagram. Drag to reorder.
-   */
-  socials?:
-    | {
-        /**
-         * Platform name, e.g. "LinkedIn"
-         */
-        label: string;
-        url: string;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
  * Header content for the /projects page. The project list itself comes from the Projects collection, filterable by the Skills collection.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -762,6 +1084,45 @@ export interface SkillsPage {
   description: string;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation_select".
+ */
+export interface NavigationSelect<T extends boolean = true> {
+  links?:
+    | T
+    | {
+        type?: T;
+        page?: T;
+        url?: T;
+        label?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-page_select".
+ */
+export interface ContactPageSelect<T extends boolean = true> {
+  photo?: T;
+  category?: T;
+  title?: T;
+  description?: T;
+  email?: T;
+  socials?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -795,27 +1156,6 @@ export interface AboutPageSelect<T extends boolean = true> {
         description?: T;
         current?: T;
         skills?: T;
-        id?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "contact-page_select".
- */
-export interface ContactPageSelect<T extends boolean = true> {
-  photo?: T;
-  category?: T;
-  title?: T;
-  description?: T;
-  email?: T;
-  socials?:
-    | T
-    | {
-        label?: T;
-        url?: T;
         id?: T;
       };
   updatedAt?: T;

@@ -26,8 +26,12 @@ export const projectContentConverters: JSXConvertersFunction<DefaultNodeTypes> =
       return <h3 className={styles.subheading}>{children}</h3>
     }
 
+    // Lexical serializes node state under a "$" key; also accept it flat.
     const colorKey = node.children
-      .map((child) => (child as unknown as { headingColor?: string }).headingColor)
+      .map((child) => {
+        const textNode = child as unknown as { $?: { headingColor?: string }; headingColor?: string }
+        return textNode.$?.headingColor ?? textNode.headingColor
+      })
       .find((color): color is string => typeof color === 'string')
     const colorClass = colorKey ? (HEADING_COLOR_CLASSES[colorKey] ?? '') : ''
 

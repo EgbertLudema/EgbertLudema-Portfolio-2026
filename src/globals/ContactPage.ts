@@ -1,48 +1,45 @@
 import type { GlobalConfig } from 'payload'
 
+/** Site-wide contact info. Kept under its original 'contact-page' slug
+ * (from when it also held the /contact page's copy) to avoid a Postgres
+ * table rename: the page itself now lives in the Pages collection. */
 export const ContactPage: GlobalConfig = {
   slug: 'contact-page',
-  label: 'Contact Page',
+  label: 'Contact Details',
   admin: {
-    description: 'Content for the /contact page.',
+    description:
+      'Email and social links used in the site footer, on the homepage, and in any page hero with "Show contact details" turned on.',
   },
   access: {
     read: () => true,
   },
   fields: [
+    // Legacy: the old /contact page header, superseded by the "contact"
+    // page in the Pages collection. Hidden, and only kept so
+    // `pnpm migrate:pages` can copy it over; safe to delete afterwards.
     {
       name: 'photo',
       type: 'upload',
       relationTo: 'media',
-      admin: {
-        description: 'Portrait photo shown on the Contact page.',
-      },
+      admin: { hidden: true },
     },
     {
       name: 'category',
       type: 'text',
       localized: true,
-      defaultValue: 'CONTACT · 2026',
-      admin: {
-        description: 'Small label shown above the title, e.g. "CONTACT · 2026"',
-      },
+      admin: { hidden: true },
     },
     {
       name: 'title',
       type: 'text',
-      required: true,
       localized: true,
-      defaultValue: 'Contact',
+      admin: { hidden: true },
     },
     {
       name: 'description',
       type: 'textarea',
-      required: true,
       localized: true,
-      defaultValue: 'Reach out about a project, a collaboration, or anything else.',
-      admin: {
-        description: 'Short intro shown under the title.',
-      },
+      admin: { hidden: true },
     },
     {
       name: 'email',

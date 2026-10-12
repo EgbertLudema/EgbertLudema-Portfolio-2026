@@ -3,7 +3,10 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import ExperienceLoader from '@/components/experience/ExperienceLoader'
 import type { ExperienceItem } from '@/components/experience/items'
+import { getContactDetails } from '@/lib/contactDetails'
 import { getLocale } from '@/lib/getLocale'
+import { getNavLinks } from '@/lib/navigation'
+import { isPublished } from '@/lib/published'
 
 export const revalidate = 0
 
@@ -11,22 +14,18 @@ export default async function HomePage() {
   const payload = await getPayload({ config })
   const locale = await getLocale()
 
-  const [{ docs }, contactPage] = await Promise.all([
+  const [{ docs }, contact, navLinks] = await Promise.all([
     payload.find({
       collection: 'projects',
+      where: isPublished,
       sort: 'order',
       depth: 1,
       limit: 100,
       locale,
     }),
-    payload.findGlobal({ slug: 'contact-page', locale }),
+    getContactDetails(locale),
+    getNavLinks(locale),
   ])
-
-  const socials = (contactPage.socials ?? [])
-    .filter((social): social is { label: string; url: string; id?: string | null } =>
-      Boolean(social?.label && social?.url),
-    )
-    .map((social) => ({ id: social.id ?? social.label, label: social.label, url: social.url }))
 
   const items: ExperienceItem[] = docs.map((doc) => {
     const image = typeof doc.image === 'object' && doc.image ? doc.image : null
@@ -56,11 +55,5 @@ export default async function HomePage() {
     }
   })
 
-  return (
-    <ExperienceLoader
-      items={items}
-      locale={locale}
-      contact={{ email: contactPage.email, socials }}
-    />
-  )
+  return <ExperienceLoader items={items} locale={locale} contact={contact} navLinks={navLinks} />
 }

@@ -1,17 +1,9 @@
 import type { CollectionConfig } from 'payload'
 import { slugField } from 'payload'
-import { lexicalEditor, TextStateFeature } from '@payloadcms/richtext-lexical'
 
-/** Selecting heading text and applying one of these ("Text Color" in the
- * toolbar) marks which section of a model/framework it belongs to, e.g. the
- * four categories of the Financieel gedrag model diagram, mirroring the
- * dot colors in PageShell.module.css's .headingPurple/.headingOrange/etc. */
-const HEADING_COLOR_STATE = {
-  purple: { label: 'Purple', css: { color: '#8f7cc7' } },
-  orange: { label: 'Orange', css: { color: '#c07a3e' } },
-  yellow: { label: 'Yellow', css: { color: '#b3902a' } },
-  green: { label: 'Green', css: { color: '#4c9a67' } },
-}
+import { authenticatedOrPublished } from '../access/authenticatedOrPublished'
+import { caseStudyEditor } from '../fields/caseStudyEditor'
+import { previewPath, projectPath } from '../lib/previewPath'
 
 export const Projects: CollectionConfig = {
   slug: 'projects',
@@ -21,12 +13,25 @@ export const Projects: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'type', 'order', 'updatedAt'],
-    description: 'The list of items shown on the homepage.',
+    defaultColumns: ['title', 'type', 'order', '_status', 'updatedAt'],
+    description:
+      'The list of items shown on the homepage. Only published projects appear on the site; drafts stay hidden until you publish them.',
+    livePreview: {
+      url: ({ data }) => previewPath(projectPath(data?.slug)),
+    },
+    preview: (data) => previewPath(projectPath(data?.slug as string | undefined)),
   },
   defaultSort: 'order',
   access: {
-    read: () => true,
+    read: authenticatedOrPublished,
+  },
+  versions: {
+    drafts: {
+      autosave: {
+        interval: 375,
+      },
+    },
+    maxPerDoc: 50,
   },
   fields: [
     {
@@ -80,12 +85,7 @@ export const Projects: CollectionConfig = {
       name: 'content',
       type: 'richText',
       localized: true,
-      editor: lexicalEditor({
-        features: ({ defaultFeatures }) => [
-          ...defaultFeatures,
-          TextStateFeature({ state: { headingColor: HEADING_COLOR_STATE } }),
-        ],
-      }),
+      editor: caseStudyEditor,
       admin: {
         description:
           'Full case-study write-up, shown on this project\'s detail page. To color a heading (e.g. to mark which section of a model it belongs to), select its text and use "Text Color" in the toolbar.',

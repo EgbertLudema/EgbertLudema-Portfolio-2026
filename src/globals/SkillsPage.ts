@@ -1,13 +1,14 @@
 import type { GlobalConfig } from 'payload'
 
-/** Backs the /projects page (filterable project list). Kept under its
- * original 'skills-page' slug, from when this content lived at /skills,
- * to avoid a Postgres table rename/migration: the route moved, this
- * global's slug intentionally didn't. */
+/** Legacy: the old /projects page header, superseded by the "projects"
+ * page in the Pages collection. Hidden from the admin and only kept so
+ * `pnpm migrate:pages` can copy it over; safe to delete (with its
+ * Postgres tables) once that has run. */
 export const SkillsPage: GlobalConfig = {
   slug: 'skills-page',
-  label: 'Projects Page',
+  label: 'Projects Page (legacy)',
   admin: {
+    hidden: true,
     description:
       'Header content for the /projects page. The project list itself comes from the Projects collection, filterable by the Skills collection.',
   },

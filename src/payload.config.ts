@@ -10,10 +10,12 @@ import { Users } from './collections/Users'
 import { Documents } from './collections/Documents'
 import { Media } from './collections/Media'
 import { Models } from './collections/Models'
+import { Pages } from './collections/Pages'
 import { Projects } from './collections/Projects'
 import { Skills } from './collections/Skills'
 import { AboutPage } from './globals/AboutPage'
 import { ContactPage } from './globals/ContactPage'
+import { Navigation } from './globals/Navigation'
 import { SkillsPage } from './globals/SkillsPage'
 
 const filename = fileURLToPath(import.meta.url)
@@ -25,9 +27,16 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    livePreview: {
+      breakpoints: [
+        { label: 'Mobile', name: 'mobile', width: 375, height: 667 },
+        { label: 'Tablet', name: 'tablet', width: 768, height: 1024 },
+        { label: 'Desktop', name: 'desktop', width: 1440, height: 900 },
+      ],
+    },
   },
-  collections: [Users, Media, Models, Documents, Projects, Skills],
-  globals: [AboutPage, ContactPage, SkillsPage],
+  collections: [Pages, Projects, Skills, Media, Models, Documents, Users],
+  globals: [Navigation, ContactPage, AboutPage, SkillsPage],
   localization: {
     locales: ['en', 'nl'],
     defaultLocale: 'en',

@@ -705,6 +705,62 @@
   color: var(--color-ink);
 }
 
+.mediaBlock {
+  margin: 0 0 56px;
+}
+
+.mediaBlock .heroImage {
+  margin-bottom: 12px;
+}
+
+.mediaCaption {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+/* Draft-mode indicator (admin preview), pinned bottom-center above the
+   page so it's clear the content isn't what visitors see. */
+.previewBar {
+  position: fixed;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
+}
+
+.previewBarDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.previewBarExit {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  transition: background 0.2s ease;
+}
+
+.previewBarExit:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
 @media (min-width: 721px) and (max-width: 1024px) {
   .pageNav {
     padding-left: max(28px, env(safe-area-inset-left));
