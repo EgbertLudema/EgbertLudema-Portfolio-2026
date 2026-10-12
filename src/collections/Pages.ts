@@ -1,5 +1,4 @@
 import type { CollectionConfig } from 'payload'
-import { slugField, ValidationError } from 'payload'
 
 import { authenticatedOrPublished } from '../access/authenticatedOrPublished'
 import { ContentBlock } from '../blocks/Content/config'
@@ -7,13 +6,14 @@ import { MediaBlock } from '../blocks/MediaBlock/config'
 import { ProjectsGridBlock } from '../blocks/ProjectsGrid/config'
 import { SkillsListBlock } from '../blocks/SkillsList/config'
 import { TimelineBlock } from '../blocks/Timeline/config'
+import { fillSlug, slug } from '../fields/slug'
 import { hero } from '../heros/config'
 import { pagePath, previewPath } from '../lib/previewPath'
 
-/** Top-level paths already taken by the app itself: a page with one of
- * these slugs would never be reachable. ('projects' is fine: /projects
- * renders the page with that slug, only /projects/<slug> is a project.) */
-const RESERVED_SLUGS = ['admin', 'api', 'next', 'my-route']
+/** Paths already taken by the app itself: a page there would never be
+ * reachable. 'projects' itself is fine (/projects renders the page with that
+ * slug); only what's under it is taken, by the project detail pages. */
+const RESERVED_PATHS = ['admin', 'api', 'next', 'my-route', 'projects/']
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -25,7 +25,7 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
     description:
-      'Pages served at /<slug>, built from a hero and content blocks. Only published pages are visible on the site.',
+      'Pages served at /<slug> (nested slugs like "groupbite/privacy" work too), built from a hero and content blocks. Only published pages are visible on the site.',
     livePreview: {
       url: ({ data }) => previewPath(pagePath(data?.slug)),
     },
@@ -43,17 +43,7 @@ export const Pages: CollectionConfig = {
     maxPerDoc: 50,
   },
   hooks: {
-    beforeValidate: [
-      ({ data }) => {
-        if (data?.slug && RESERVED_SLUGS.includes(data.slug)) {
-          throw new ValidationError({
-            collection: 'pages',
-            errors: [{ message: `"${data.slug}" is reserved, pick another slug.`, path: 'slug' }],
-          })
-        }
-        return data
-      },
-    ],
+    beforeValidate: [fillSlug({ nested: true, reserved: RESERVED_PATHS })],
   },
   fields: [
     {
@@ -110,6 +100,6 @@ export const Pages: CollectionConfig = {
         },
       ],
     },
-    slugField(),
+    slug({ nested: true }),
   ],
 }

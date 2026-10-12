@@ -1,8 +1,8 @@
 import type { CollectionConfig } from 'payload'
-import { slugField } from 'payload'
 
 import { authenticatedOrPublished } from '../access/authenticatedOrPublished'
 import { caseStudyEditor } from '../fields/caseStudyEditor'
+import { fillSlug, slug } from '../fields/slug'
 import { previewPath, projectPath } from '../lib/previewPath'
 
 export const Projects: CollectionConfig = {
@@ -25,6 +25,9 @@ export const Projects: CollectionConfig = {
   access: {
     read: authenticatedOrPublished,
   },
+  hooks: {
+    beforeValidate: [fillSlug()],
+  },
   versions: {
     drafts: {
       autosave: {
@@ -39,7 +42,7 @@ export const Projects: CollectionConfig = {
       type: 'text',
       required: true,
     },
-    slugField(),
+    slug(),
     {
       name: 'category',
       type: 'text',

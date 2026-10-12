@@ -138,7 +138,7 @@ export interface UserAuthOperations {
   };
 }
 /**
- * Pages served at /<slug>, built from a hero and content blocks. Only published pages are visible on the site.
+ * Pages served at /<slug> (nested slugs like "groupbite/privacy" work too), built from a hero and content blocks. Only published pages are visible on the site.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "pages".
@@ -200,6 +200,9 @@ export interface Page {
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
   generateSlug?: boolean | null;
+  /**
+   * Leave empty to use the title. Use "/" for nested paths, e.g. "groupbite/privacy".
+   */
   slug: string;
   updatedAt: string;
   createdAt: string;
@@ -401,6 +404,9 @@ export interface Project {
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
   generateSlug?: boolean | null;
+  /**
+   * Leave empty to use the title.
+   */
   slug: string;
   /**
    * Small label shown above the title, e.g. "VISUAL STUDY · 2026"
