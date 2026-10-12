@@ -1,9 +1,8 @@
 import type { GlobalConfig } from 'payload'
 
 /** Legacy: the old /about page content, superseded by the "about" page in
- * the Pages collection. Hidden from the admin and only kept so
- * `pnpm migrate:pages` can copy it over; safe to delete (with its
- * Postgres tables) once that has run. */
+ * the Pages collection, which its content was copied into. Hidden from the
+ * admin; safe to delete (dropping its Postgres tables). */
 export const AboutPage: GlobalConfig = {
   slug: 'about-page',
   label: 'About Page (legacy)',

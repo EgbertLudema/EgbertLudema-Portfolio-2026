@@ -3,6 +3,8 @@ import type { CollectionConfig } from 'payload'
 import { authenticatedOrPublished } from '../access/authenticatedOrPublished'
 import { caseStudyEditor } from '../fields/caseStudyEditor'
 import { fillSlug, slug } from '../fields/slug'
+import { statusField } from '../fields/status'
+import { clampOrder, closeOrderGap, syncOrder } from '../hooks/orderHooks'
 import { previewPath, projectPath } from '../lib/previewPath'
 
 export const Projects: CollectionConfig = {
@@ -15,7 +17,7 @@ export const Projects: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'type', 'order', '_status', 'updatedAt'],
     description:
-      'The list of items shown on the homepage. Only published projects appear on the site; drafts stay hidden until you publish them.',
+      'The list of items shown on the homepage. Only projects with status "Published" appear on the site.',
     livePreview: {
       url: ({ data }) => previewPath(projectPath(data?.slug)),
     },
@@ -27,14 +29,9 @@ export const Projects: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [fillSlug()],
-  },
-  versions: {
-    drafts: {
-      autosave: {
-        interval: 375,
-      },
-    },
-    maxPerDoc: 50,
+    beforeChange: [clampOrder],
+    afterChange: [syncOrder],
+    afterDelete: [closeOrderGap],
   },
   fields: [
     {
@@ -201,10 +198,12 @@ export const Projects: CollectionConfig = {
       type: 'number',
       defaultValue: 0,
       admin: {
-        description: 'Lower numbers appear first in the list.',
+        description:
+          'Position in the list, 0 = first. Each number is used once: the other projects shift to make room, so a new project starts at the top.',
         position: 'sidebar',
       },
     },
+    statusField,
     {
       name: 'skills',
       type: 'relationship',

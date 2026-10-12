@@ -1,9 +1,8 @@
 import type { GlobalConfig } from 'payload'
 
 /** Legacy: the old /projects page header, superseded by the "projects"
- * page in the Pages collection. Hidden from the admin and only kept so
- * `pnpm migrate:pages` can copy it over; safe to delete (with its
- * Postgres tables) once that has run. */
+ * page in the Pages collection, which its content was copied into. Hidden
+ * from the admin; safe to delete (dropping its Postgres tables). */
 export const SkillsPage: GlobalConfig = {
   slug: 'skills-page',
   label: 'Projects Page (legacy)',

@@ -24,10 +24,9 @@ export function toSlug(value: unknown, { nested = false }: SlugOptions = {}): st
 }
 
 /** Payload's slugField (sidebar input with Lock/Generate buttons), but with
- * its own auto-generation hook switched off: with autosave, Payload creates
- * the document before a title exists and then never gets the generated slug
- * back into the form, so that hook stops generating almost immediately.
- * `fillSlug` below does the generating instead. */
+ * its own auto-generation hook switched off: `fillSlug` below does the
+ * generating instead, which also handles nested slugs and stops following
+ * the title once a document has been published. */
 export function slug(options: SlugOptions = {}): RowField {
   return slugField({
     slugify: ({ valueToSlugify }) => toSlug(valueToSlugify, options),
@@ -47,13 +46,11 @@ export function slug(options: SlugOptions = {}): RowField {
   })
 }
 
-/** Collection beforeValidate hook, run on every save and autosave:
+/** Collection beforeValidate hook, run on every save:
  * - An empty slug is filled in from the title.
  * - A slug that still equals the previous title's slug (i.e. it was
  *   generated, never customized) keeps following the title, until the
- *   document is first published, so live URLs don't change by themselves.
- *   Autosave copies the server's slug back into the form, which is why
- *   "untouched" has to be detected this way rather than by an empty field.
+ *   document is published, so live URLs don't change by themselves.
  * - Any other slug is yours: it's only cleaned up (lowercase, dashes).
  * A save that doesn't include `slug` (e.g. an API update of other fields)
  * leaves an existing slug alone. */
@@ -65,7 +62,7 @@ export function fillSlug({
    * "projects/" (trailing slash) blocks only what's nested under it. */
   reserved?: string[]
 } = {}): CollectionBeforeValidateHook {
-  return async ({ collection, data, originalDoc, req }) => {
+  return ({ collection, data, originalDoc }) => {
     if (!data) return data
 
     const typed = toSlug(data.slug, { nested })
@@ -75,18 +72,11 @@ export function fillSlug({
       if (fromTitle && ('slug' in data || !originalDoc?.slug)) data.slug = fromTitle
     } else if (
       fromTitle &&
-      typed !== fromTitle &&
-      originalDoc?.id !== undefined &&
+      originalDoc &&
+      originalDoc._status !== 'published' &&
       typed === toSlug(originalDoc.title)
     ) {
-      // Drafts never touch the main row, so its _status says whether any
-      // version of this document is live.
-      const { totalDocs: published } = await req.payload.count({
-        collection: collection.slug,
-        where: { and: [{ id: { equals: originalDoc.id } }, { _status: { equals: 'published' } }] },
-        req,
-      })
-      data.slug = published > 0 ? typed : fromTitle
+      data.slug = fromTitle
     } else {
       data.slug = typed
     }

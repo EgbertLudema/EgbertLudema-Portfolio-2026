@@ -16,15 +16,14 @@ import PageNav from './PageNav'
 import PreviewBar from './PreviewBar'
 import styles from '@/app/(frontend)/PageShell.module.css'
 
-/** In draft mode (admin preview) this returns the latest draft, otherwise
- * only a published page. Cached so generateMetadata and the page share
+/** In draft mode (admin preview) this also returns pages with status
+ * Draft, otherwise only published ones. Cached so generateMetadata and the page share
  * one query. */
 const getPage = cache(async (slug: string, locale: Locale, draft: boolean) => {
   const payload = await getPayload({ config })
   const { docs } = await payload.find({
     collection: 'pages',
     where: draft ? { slug: { equals: slug } } : { and: [{ slug: { equals: slug } }, isPublished] },
-    draft,
     depth: 2,
     limit: 1,
     locale,

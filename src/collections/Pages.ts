@@ -7,6 +7,7 @@ import { ProjectsGridBlock } from '../blocks/ProjectsGrid/config'
 import { SkillsListBlock } from '../blocks/SkillsList/config'
 import { TimelineBlock } from '../blocks/Timeline/config'
 import { fillSlug, slug } from '../fields/slug'
+import { statusField } from '../fields/status'
 import { hero } from '../heros/config'
 import { pagePath, previewPath } from '../lib/previewPath'
 
@@ -25,7 +26,7 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
     description:
-      'Pages served at /<slug> (nested slugs like "groupbite/privacy" work too), built from a hero and content blocks. Only published pages are visible on the site.',
+      'Pages served at /<slug> (nested slugs like "groupbite/privacy" work too), built from a hero and content blocks. Only pages with status "Published" are visible on the site.',
     livePreview: {
       url: ({ data }) => previewPath(pagePath(data?.slug)),
     },
@@ -33,14 +34,6 @@ export const Pages: CollectionConfig = {
   },
   access: {
     read: authenticatedOrPublished,
-  },
-  versions: {
-    drafts: {
-      autosave: {
-        interval: 375,
-      },
-    },
-    maxPerDoc: 50,
   },
   hooks: {
     beforeValidate: [fillSlug({ nested: true, reserved: RESERVED_PATHS })],
@@ -100,6 +93,7 @@ export const Pages: CollectionConfig = {
         },
       ],
     },
+    statusField,
     slug({ nested: true }),
   ],
 }

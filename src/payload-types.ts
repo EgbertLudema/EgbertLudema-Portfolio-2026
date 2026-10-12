@@ -138,7 +138,7 @@ export interface UserAuthOperations {
   };
 }
 /**
- * Pages served at /<slug> (nested slugs like "groupbite/privacy" work too), built from a hero and content blocks. Only published pages are visible on the site.
+ * Pages served at /<slug> (nested slugs like "groupbite/privacy" work too), built from a hero and content blocks. Only pages with status "Published" are visible on the site.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "pages".
@@ -197,6 +197,10 @@ export interface Page {
     description?: string | null;
   };
   /**
+   * Only published items are visible on the site.
+   */
+  _status?: ('draft' | 'published') | null;
+  /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
   generateSlug?: boolean | null;
@@ -206,7 +210,6 @@ export interface Page {
   slug: string;
   updatedAt: string;
   createdAt: string;
-  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -392,7 +395,7 @@ export interface MediaBlock {
   blockType: 'mediaBlock';
 }
 /**
- * The list of items shown on the homepage. Only published projects appear on the site; drafts stay hidden until you publish them.
+ * The list of items shown on the homepage. Only projects with status "Published" appear on the site.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "projects".
@@ -480,9 +483,13 @@ export interface Project {
   accentColorA?: string | null;
   accentColorB?: string | null;
   /**
-   * Lower numbers appear first in the list.
+   * Position in the list, 0 = first. Each number is used once: the other projects shift to make room, so a new project starts at the top.
    */
   order?: number | null;
+  /**
+   * Only published items are visible on the site.
+   */
+  _status?: ('draft' | 'published') | null;
   /**
    * Skills used on this project, powering the future skills-hover section.
    */
@@ -493,7 +500,6 @@ export interface Project {
   relatedProjects?: (number | Project)[] | null;
   updatedAt: string;
   createdAt: string;
-  _status?: ('draft' | 'published') | null;
 }
 /**
  * Upload .glb / .gltf files to use as the 3D object in a project.
@@ -676,11 +682,11 @@ export interface PagesSelect<T extends boolean = true> {
         title?: T;
         description?: T;
       };
+  _status?: T;
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;
   createdAt?: T;
-  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -776,11 +782,11 @@ export interface ProjectsSelect<T extends boolean = true> {
   accentColorA?: T;
   accentColorB?: T;
   order?: T;
+  _status?: T;
   skills?: T;
   relatedProjects?: T;
   updatedAt?: T;
   createdAt?: T;
-  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

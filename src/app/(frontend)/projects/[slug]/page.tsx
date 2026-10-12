@@ -22,15 +22,14 @@ import Gallery from './Gallery'
 
 export const revalidate = 0
 
-/** In draft mode (admin preview) this returns the latest draft, otherwise
- * only a published project. Cached so generateMetadata and the page share
+/** In draft mode (admin preview) this also returns projects with status
+ * Draft, otherwise only published ones. Cached so generateMetadata and the page share
  * one query. */
 const getProject = cache(async (slug: string, locale: Locale, draft: boolean) => {
   const payload = await getPayload({ config })
   const { docs } = await payload.find({
     collection: 'projects',
     where: draft ? { slug: { equals: slug } } : { and: [{ slug: { equals: slug } }, isPublished] },
-    draft,
     depth: 2,
     limit: 1,
     locale,
@@ -72,8 +71,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
       typeof item.image === 'object',
   )
   const skills = (project.skills ?? []).filter((skill): skill is Skill => typeof skill === 'object')
-  // In draft mode related projects come back as their latest drafts too, so
-  // only filter unpublished ones out of the live page.
+  // While previewing, also show related projects that are still drafts.
   const relatedProjects = (project.relatedProjects ?? []).filter(
     (related): related is Project =>
       typeof related === 'object' && (draft || isPublishedDoc(related)),

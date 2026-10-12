@@ -15,8 +15,8 @@ export const ContactPage: GlobalConfig = {
   },
   fields: [
     // Legacy: the old /contact page header, superseded by the "contact"
-    // page in the Pages collection. Hidden, and only kept so
-    // `pnpm migrate:pages` can copy it over; safe to delete afterwards.
+    // page in the Pages collection, which this was copied into. Hidden;
+    // safe to delete.
     {
       name: 'photo',
       type: 'upload',
